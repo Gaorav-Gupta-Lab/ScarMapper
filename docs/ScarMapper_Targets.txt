@@ -1,0 +1,2 @@
+# Chr	Start	Stop	CutSite	RegionName	sgRNA_Seq	Comments
+6	113075804	113076276	113076030	Rosa26a	TCTTCTAGAAAGACTGGAGT	This is our first target.
