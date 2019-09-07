@@ -1,0 +1,2775 @@
+=======
+Atropos
+=======
+
+Atropos version: 1.1.21
+Python version: 3.6.4
+Command line parameters: trim --aligner adapter --threads 2 -G file:/OneDrive/Bioinformatics/Atropos_Adapters/5'_anchored_adapters.fa -g file:/OneDrive/Bioinformatics/Atropos_Adapters/5'_anchored_adapters.fa -A file:/OneDrive/Bioinformatics/Atropos_Adapters/3'_anchored_adapters.fa -a file:/OneDrive/Bioinformatics/Atropos_Adapters/3'_anchored_adapters.fa -o /Sequencing/Testing/ScarMapper_Test_Trim.R1.fastq.gz -p /Sequencing/Testing/ScarMapper_Test_Trim.R2.fastq.gz -pe1 /OneDrive_UNC/Projects/Ramsden/FASTQ/RJ_JCG1_S1_L001_R1_001.fastq.gz -pe2 /OneDrive_UNC/Projects/Ramsden/FASTQ/RJ_JCG1_S1_L001_R2_001.fastq.gz --op-order GAWCQ --nextseq-trim 1 --error-rate 0.15 --times 3 --quality-cutoff 20 --stats bot --read-queue-size 500000 --result-queue-size 100000 --report-file /Sequencing/Testing/Atropos_ScarMapper_Test_Trim_Report.txt
+
+Sample ID: RJ_JCG1_S1_L001_R
+Input format: FASTQ, Paired, w/ Qualities
+Input files:
+  /OneDrive_UNC/Projects/Ramsden/FASTQ/RJ_JCG1_S1_L001_R1_001.fastq.gz
+  /OneDrive_UNC/Projects/Ramsden/FASTQ/RJ_JCG1_S1_L001_R2_001.fastq.gz
+
+Start time: 2019-02-01T18:51:12.311654
+Wallclock time: 134.03 s (21 us/read; 2.85 M reads/minute)
+CPU time (main process): 132.85 s
+
+--------
+Trimming
+--------
+
+Pairs                                     records      fraction
+----------------------------------- ------------- -------------
+Total read pairs processed:             6,373,514
+  Read 1 with adapter:                     16,303          0.3%
+  Read 2 with adapter:                     22,427          0.4%
+Pairs written (passing filters):        6,373,514        100.0%
+
+Base pairs                                     bp      fraction
+----------------------------------- ------------- -------------
+Total bp processed:                 3,824,108,400
+  Read 1:                           1,912,054,200
+  Read 2:                           1,912,054,200
+Quality trimmed (NextSeq)              10,020,973          0.3%
+  Read 1:                               4,499,573          0.2%
+  Read 2:                               5,521,400          0.3%
+Quality-trimmed                       113,630,757          3.0%
+  Read 1:                              44,055,185          2.3%
+  Read 2:                              69,575,572          3.6%
+Total bp written (filtered):        3,698,759,850         96.7%
+  Read 1:                           1,862,860,815         97.4%
+  Read 2:                           1,835,899,035         96.0%
+
+--------------------------------
+First read: Adapter UserDefined1
+--------------------------------
+
+Sequence                    Type        Length Trimmed (x)
+--------------------------- ----------- ------ -----------
+AAAAAAAAAAAGGGGGGGGGGGGGGGG anchored 3'     27           0
+
+--------------------------------
+First read: Adapter UserDefined2
+--------------------------------
+
+Sequence                                 Type        Length Trimmed (x)
+---------------------------------------- ----------- ------ -----------
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA anchored 3'     40         955
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-39 bp: 5; 40 bp: 6
+
+Bases preceding removed adapters:
+  A          81.7%
+  C           3.0%
+  G           5.9%
+  T           9.4%
+  none/other  0.0%
+WARNING:
+  The adapter is preceded by "A" extremely often. The provided adapter
+  sequence may be incomplete. To fix the problem, add "A" to the
+  beginning of the adapter sequence.
+
+Overview of removed sequences:
+length count expect max.err error counts         
+                            0 1 2  3  4   5   6  
+------ ----- ------ ------- ---------------------
+    40   955    0.0       6 5 6 30 79 137 273 425
+
+--------------------------------
+First read: Adapter UserDefined3
+--------------------------------
+
+Sequence                                        Type        Length Trimmed (x)
+----------------------------------------------- ----------- ------ -----------
+GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG anchored 3'     47           7
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-39 bp: 5; 40-45 bp: 6; 46-47 bp: 7
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0 1 2 3 4   
+------ ----- ------ ------- ------------
+    47     7    0.0       7 2 1 1 2 1   
+
+--------------------------------------
+First read: Adapter HaloPlexAdapater1a
+--------------------------------------
+
+Sequence                           Type        Length Trimmed (x)
+---------------------------------- ----------- ------ -----------
+AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC anchored 3'     34           4
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-34 bp: 5
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0 1 2 3     
+------ ----- ------ ------- ------------
+    31     1    0.0       4 0 0 1       
+    32     1    0.0       4 0 1         
+    33     1    0.0       4 1           
+    38     1    0.0       5 0 0 0 1     
+
+--------------------------------------
+First read: Adapter HaloPlexAdapater1b
+--------------------------------------
+
+Sequence                                                   Type        Length Trimmed (x)
+---------------------------------------------------------- ----------- ------ -----------
+AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT anchored 3'     58           0
+
+---------------------------------
+First read: Adapter HaloPlexKmer1
+---------------------------------
+
+Sequence                                       Type        Length Trimmed (x)
+---------------------------------------------- ----------- ------ -----------
+GAGATCGGAAGAGCACACGTCTGAACTCCAGTCACGAATCTGAATC anchored 5'     46           0
+
+---------------------------------
+First read: Adapter HaloPlexKmer2
+---------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT anchored 5'     33           0
+
+---------------------------------------------
+First read: Adapter IlluminaSingleEndAdapter1
+---------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+GATCGGAAGAGCTCGTATGCCGTCTTCTGCTTG anchored 5'     33           0
+
+---------------------------------------------
+First read: Adapter IlluminaSingleEndAdapter2
+---------------------------------------------
+
+Sequence                           Type        Length Trimmed (x)
+---------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGCTCTTCCGATCT anchored 5'     34           0
+
+-----------------------------------------------
+First read: Adapter IlluminaSingleEndPCRPrimer1
+-----------------------------------------------
+
+Sequence                                                   Type        Length Trimmed (x)
+---------------------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     58           0
+
+-----------------------------------------------
+First read: Adapter IlluminaSingleEndPCRPrimer2
+-----------------------------------------------
+
+Sequence                           Type        Length Trimmed (x)
+---------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGCTCTTCCGATCT anchored 5'     34           0
+
+-----------------------------------------------------
+First read: Adapter IlluminaSingleEndSequencingPrimer
+-----------------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+ACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     33           6
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-33 bp: 4
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0 1 2       
+------ ----- ------ ------- ------------
+    30     1    0.0       4 0 0 1       
+    32     1    0.0       4 0 1         
+    33     3    0.0       4 1 2         
+    36     1    0.0       4 0 0 1       
+
+---------------------------------------------
+First read: Adapter IlluminaPairedEndAdapter1
+---------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+ACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     33           0
+
+---------------------------------------------
+First read: Adapter IlluminaPairedEndAdapter2
+---------------------------------------------
+
+Sequence                         Type        Length Trimmed (x)
+-------------------------------- ----------- ------ -----------
+GATCGGAAGAGCGGTTCAGCAGGAATGCCGAG anchored 5'     32          67
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0 1  2 3 4  
+------ ----- ------ ------- ------------
+    28     1    0.0       4 0 0  0 0 1  
+    29     1    0.0       4 0 0  0 1    
+    30     1    0.0       4 0 0  0 0 1  
+    32     4    0.0       4 3 0  1      
+    33    58    0.0       4 0 51 6 1    
+    34     2    0.0       4 0 0  2      
+
+-----------------------------------------------
+First read: Adapter IlluminaPariedEndPCRPrimer1
+-----------------------------------------------
+
+Sequence                                                   Type        Length Trimmed (x)
+---------------------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     58           0
+
+-----------------------------------------------
+First read: Adapter IlluminaPairedEndPCRPrimer2
+-----------------------------------------------
+
+Sequence                                                      Type        Length Trimmed (x)
+------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT anchored 5'     61           0
+
+------------------------------------------------------
+First read: Adapter IlluminaPariedEndSequencingPrimer1
+------------------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+ACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     33           0
+
+------------------------------------------------------
+First read: Adapter IlluminaPairedEndSequencingPrimer2
+------------------------------------------------------
+
+Sequence                              Type        Length Trimmed (x)
+------------------------------------- ----------- ------ -----------
+CGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT anchored 5'     37           0
+
+---------------------------------------------------
+First read: Adapter IlluminaDpnIIexpressionAdapter1
+---------------------------------------------------
+
+Sequence                   Type        Length Trimmed (x)
+-------------------------- ----------- ------ -----------
+ACAGGTTCAGAGTTCTACAGTCCGAC anchored 5'     26           0
+
+---------------------------------------------------
+First read: Adapter IlluminaDpnIIexpressionAdapter2
+---------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+-----------------------------------------------------
+First read: Adapter IlluminaDpnIIexpressionPCRPrimer1
+-----------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+-----------------------------------------------------
+First read: Adapter IlluminaDpnIIexpressionPCRPrimer2
+-----------------------------------------------------
+
+Sequence                                     Type        Length Trimmed (x)
+-------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGACAGGTTCAGAGTTCTACAGTCCGA anchored 5'     44           0
+
+-----------------------------------------------------------
+First read: Adapter IlluminaDpnIIexpressionSequencingPrimer
+-----------------------------------------------------------
+
+Sequence                         Type        Length Trimmed (x)
+-------------------------------- ----------- ------ -----------
+CGACAGGTTCAGAGTTCTACAGTCCGACGATC anchored 5'     32           0
+
+----------------------------------------------------
+First read: Adapter IlluminaNlaIIIexpressionAdapter1
+----------------------------------------------------
+
+Sequence                      Type        Length Trimmed (x)
+----------------------------- ----------- ------ -----------
+ACAGGTTCAGAGTTCTACAGTCCGACATG anchored 5'     29           0
+
+----------------------------------------------------
+First read: Adapter IlluminaNlaIIIexpressionAdapter2
+----------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+------------------------------------------------------
+First read: Adapter IlluminaNlaIIIexpressionPCRPrimer1
+------------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+------------------------------------------------------
+First read: Adapter IlluminaNlaIIIexpressionPCRPrimer2
+------------------------------------------------------
+
+Sequence                                     Type        Length Trimmed (x)
+-------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGACAGGTTCAGAGTTCTACAGTCCGA anchored 5'     44           0
+
+------------------------------------------------------------
+First read: Adapter IlluminaNlaIIIexpressionSequencingPrimer
+------------------------------------------------------------
+
+Sequence                         Type        Length Trimmed (x)
+-------------------------------- ----------- ------ -----------
+CCGACAGGTTCAGAGTTCTACAGTCCGACATG anchored 5'     32           0
+
+--------------------------------------------
+First read: Adapter IlluminaSmallRNAAdapter1
+--------------------------------------------
+
+Sequence                   Type        Length Trimmed (x)
+-------------------------- ----------- ------ -----------
+GTTCAGAGTTCTACAGTCCGACGATC anchored 5'     26           0
+
+--------------------------------------------
+First read: Adapter IlluminaSmallRNAAdapter2
+--------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+TGGAATTCTCGGGTGCCAAGG anchored 5'     21           0
+
+--------------------------------------------
+First read: Adapter IlluminaSmallRNARTPrimer
+--------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+----------------------------------------------
+First read: Adapter IlluminaSmallRNAPCRPrimer1
+----------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+----------------------------------------------
+First read: Adapter IlluminaSmallRNAPCRPrimer2
+----------------------------------------------
+
+Sequence                                     Type        Length Trimmed (x)
+-------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGACAGGTTCAGAGTTCTACAGTCCGA anchored 5'     44           0
+
+----------------------------------------------------
+First read: Adapter IlluminaSmallRNASequencingPrimer
+----------------------------------------------------
+
+Sequence                         Type        Length Trimmed (x)
+-------------------------------- ----------- ------ -----------
+CGACAGGTTCAGAGTTCTACAGTCCGACGATC anchored 5'     32           0
+
+------------------------------------------------
+First read: Adapter IlluminaMultiplexingAdapter1
+------------------------------------------------
+
+Sequence             Type        Length Trimmed (x)
+-------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCT anchored 5'     20           0
+
+------------------------------------------------
+First read: Adapter IlluminaMultiplexingAdapter2
+------------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+ACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     33           0
+
+-----------------------------------------------------
+First read: Adapter IlluminaMultiplexingPCRPrimer1.01
+-----------------------------------------------------
+
+Sequence                                                   Type        Length Trimmed (x)
+---------------------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     58           0
+
+-----------------------------------------------------
+First read: Adapter IlluminaMultiplexingPCRPrimer2.01
+-----------------------------------------------------
+
+Sequence                           Type        Length Trimmed (x)
+---------------------------------- ----------- ------ -----------
+GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT anchored 5'     34           0
+
+-------------------------------------------------------------
+First read: Adapter IlluminaMultiplexingRead1SequencingPrimer
+-------------------------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+ACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     33           0
+
+-------------------------------------------------------------
+First read: Adapter IlluminaMultiplexingIndexSequencingPrimer
+-------------------------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCAC anchored 5'     33           0
+
+-------------------------------------------------------------
+First read: Adapter IlluminaMultiplexingRead2SequencingPrimer
+-------------------------------------------------------------
+
+Sequence                           Type        Length Trimmed (x)
+---------------------------------- ----------- ------ -----------
+GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT anchored 5'     34           0
+
+-------------------------------------------
+First read: Adapter IlluminaPCRPrimerIndex1
+-------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGTGATGTGACTGGAGTTC anchored 5'     43           0
+
+-------------------------------------------
+First read: Adapter IlluminaPCRPrimerIndex2
+-------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATACATCGGTGACTGGAGTTC anchored 5'     43           0
+
+-------------------------------------------
+First read: Adapter IlluminaPCRPrimerIndex3
+-------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCCTAAGTGACTGGAGTTC anchored 5'     43           0
+
+-------------------------------------------
+First read: Adapter IlluminaPCRPrimerIndex4
+-------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTGGTCAGTGACTGGAGTTC anchored 5'     43           0
+
+-------------------------------------------
+First read: Adapter IlluminaPCRPrimerIndex5
+-------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCACTGTGTGACTGGAGTTC anchored 5'     43           0
+
+-------------------------------------------
+First read: Adapter IlluminaPCRPrimerIndex6
+-------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATATTGGCGTGACTGGAGTTC anchored 5'     43           0
+
+-------------------------------------------
+First read: Adapter IlluminaPCRPrimerIndex7
+-------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGATCTGGTGACTGGAGTTC anchored 5'     43           0
+
+-------------------------------------------
+First read: Adapter IlluminaPCRPrimerIndex8
+-------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTCAAGTGTGACTGGAGTTC anchored 5'     43           0
+
+-------------------------------------------
+First read: Adapter IlluminaPCRPrimerIndex9
+-------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCTGATCGTGACTGGAGTTC anchored 5'     43           0
+
+--------------------------------------------
+First read: Adapter IlluminaPCRPrimerIndex10
+--------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATAAGCTAGTGACTGGAGTTC anchored 5'     43           0
+
+--------------------------------------------
+First read: Adapter IlluminaPCRPrimerIndex11
+--------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGTAGCCGTGACTGGAGTTC anchored 5'     43           0
+
+--------------------------------------------
+First read: Adapter IlluminaPCRPrimerIndex12
+--------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTACAAGGTGACTGGAGTTC anchored 5'     43           0
+
+--------------------------------------------
+First read: Adapter IlluminaDpnIIGexAdapter1
+--------------------------------------------
+
+Sequence                   Type        Length Trimmed (x)
+-------------------------- ----------- ------ -----------
+GATCGTCGGACTGTAGAACTCTGAAC anchored 5'     26           0
+
+-----------------------------------------------
+First read: Adapter IlluminaDpnIIGexAdapter1.01
+-----------------------------------------------
+
+Sequence                   Type        Length Trimmed (x)
+-------------------------- ----------- ------ -----------
+ACAGGTTCAGAGTTCTACAGTCCGAC anchored 5'     26           0
+
+--------------------------------------------
+First read: Adapter IlluminaDpnIIGexAdapter2
+--------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+-----------------------------------------------
+First read: Adapter IlluminaDpnIIGexAdapter2.01
+-----------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+TCGTATGCCGTCTTCTGCTTG anchored 5'     21       1,195
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-21 bp: 3
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0    1      
+------ ----- ------ ------- ------------
+    19     2    0.0       2 0    2      
+    20 1,193    0.0       3 1143 50     
+
+----------------------------------------------
+First read: Adapter IlluminaDpnIIGexPCRPrimer1
+----------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+----------------------------------------------
+First read: Adapter IlluminaDpnIIGexPCRPrimer2
+----------------------------------------------
+
+Sequence                                     Type        Length Trimmed (x)
+-------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGACAGGTTCAGAGTTCTACAGTCCGA anchored 5'     44           0
+
+----------------------------------------------------
+First read: Adapter IlluminaDpnIIGexSequencingPrimer
+----------------------------------------------------
+
+Sequence                         Type        Length Trimmed (x)
+-------------------------------- ----------- ------ -----------
+CGACAGGTTCAGAGTTCTACAGTCCGACGATC anchored 5'     32           0
+
+------------------------------------------------
+First read: Adapter IlluminaNlaIIIGexAdapter1.01
+------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+TCGGACTGTAGAACTCTGAAC anchored 5'     21           0
+
+------------------------------------------------
+First read: Adapter IlluminaNlaIIIGexAdapter1.02
+------------------------------------------------
+
+Sequence                      Type        Length Trimmed (x)
+----------------------------- ----------- ------ -----------
+ACAGGTTCAGAGTTCTACAGTCCGACATG anchored 5'     29           0
+
+------------------------------------------------
+First read: Adapter IlluminaNlaIIIGexAdapter2.01
+------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+------------------------------------------------
+First read: Adapter IlluminaNlaIIIGexAdapter2.02
+------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+TCGTATGCCGTCTTCTGCTTG anchored 5'     21           0
+
+-----------------------------------------------
+First read: Adapter IlluminaNlaIIIGexPCRPrimer1
+-----------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+-----------------------------------------------
+First read: Adapter IlluminaNlaIIIGexPCRPrimer2
+-----------------------------------------------
+
+Sequence                                     Type        Length Trimmed (x)
+-------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGACAGGTTCAGAGTTCTACAGTCCGA anchored 5'     44           0
+
+-----------------------------------------------------
+First read: Adapter IlluminaNlaIIIGexSequencingPrimer
+-----------------------------------------------------
+
+Sequence                         Type        Length Trimmed (x)
+-------------------------------- ----------- ------ -----------
+CCGACAGGTTCAGAGTTCTACAGTCCGACATG anchored 5'     32           0
+
+----------------------------------------
+First read: Adapter Illumina5pRNAAdapter
+----------------------------------------
+
+Sequence                   Type        Length Trimmed (x)
+-------------------------- ----------- ------ -----------
+GTTCAGAGTTCTACAGTCCGACGATC anchored 5'     26           0
+
+---------------------------------------
+First read: Adapter IlluminaRNAAdapter1
+---------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+TGGAATTCTCGGGTGCCAAGG anchored 5'     21           0
+
+----------------------------------------------
+First read: Adapter IlluminaSmallRNA3pAdapter1
+----------------------------------------------
+
+Sequence                 Type        Length Trimmed (x)
+------------------------ ----------- ------ -----------
+ATCTCGTATGCCGTCTTCTGCTTG anchored 5'     24           0
+
+------------------------------------------
+First read: Adapter TruSeqUniversalAdapter
+------------------------------------------
+
+Sequence                                                   Type        Length Trimmed (x)
+---------------------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     58           0
+
+---------------------------------------
+First read: Adapter TruSeqAdapterIndex1
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACATCACGATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           1
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-39 bp: 5; 40-45 bp: 6; 46-52 bp: 7; 53-59 bp: 8; 60-63 bp: 9
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0           
+------ ----- ------ ------- ------------
+    65     1    0.0       9 1           
+
+---------------------------------------
+First read: Adapter TruSeqAdapterIndex2
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACCGATGTATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           4
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-39 bp: 5; 40-45 bp: 6; 46-52 bp: 7; 53-59 bp: 8; 60-63 bp: 9
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0 1 2       
+------ ----- ------ ------- ------------
+    63     2    0.0       9 2           
+    64     1    0.0       9 0 1         
+    65     1    0.0       9 0 0 1       
+
+---------------------------------------
+First read: Adapter TruSeqAdapterIndex3
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACTTAGGCATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter TruSeqAdapterIndex4
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACTGACCAATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter TruSeqAdapterIndex5
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACACAGTGATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter TruSeqAdapterIndex6
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGCCAATATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter TruSeqAdapterIndex7
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACCAGATCATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           1
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-39 bp: 5; 40-45 bp: 6; 46-52 bp: 7; 53-59 bp: 8; 60-63 bp: 9
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0           
+------ ----- ------ ------- ------------
+    65     1    0.0       9 1           
+
+---------------------------------------
+First read: Adapter TruSeqAdapterIndex8
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACACTTGAATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter TruSeqAdapterIndex9
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGATCAGATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex10
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACTAGCTTATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           2
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-39 bp: 5; 40-45 bp: 6; 46-52 bp: 7; 53-59 bp: 8; 60-63 bp: 9
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0 1         
+------ ----- ------ ------- ------------
+    62     2    0.0       9 1 1         
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex11
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGGCTACATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex12
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACCTTGTAATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex13
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACAGTCAACTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex14
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACAGTTCCGTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           1
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-39 bp: 5; 40-45 bp: 6; 46-52 bp: 7; 53-59 bp: 8; 60-63 bp: 9
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0           
+------ ----- ------ ------- ------------
+    65     1    0.0       9 1           
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex15
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACATGTCAGTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex16
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACCCGTCCCTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           6
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-39 bp: 5; 40-45 bp: 6; 46-52 bp: 7; 53-59 bp: 8; 60-63 bp: 9
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0 1 2       
+------ ----- ------ ------- ------------
+    63     5    0.0       9 4 1         
+    64     1    0.0       9 0 0 1       
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex18
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGTCCGCATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           2
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-39 bp: 5; 40-45 bp: 6; 46-52 bp: 7; 53-59 bp: 8; 60-63 bp: 9
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0 1         
+------ ----- ------ ------- ------------
+    64     1    0.0       9 1           
+    65     1    0.0       9 0 1         
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex19
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGTGAAACTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex20
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGTGGCCTTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex21
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGTTTCGGTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex22
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACCGTACGTTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex23
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACCCACTCTTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex25
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACACTGATATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+First read: Adapter TruSeqAdapterIndex27
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACATTCCTTTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter IlluminaRNARTPrimer
+---------------------------------------
+
+Sequence               Type        Length Trimmed (x)
+---------------------- ----------- ------ -----------
+GCCTTGGCACCCGAGAATTCCA anchored 5'     22           0
+
+----------------------------------------
+First read: Adapter IlluminaRNAPCRPrimer
+----------------------------------------
+
+Sequence                                           Type        Length Trimmed (x)
+-------------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGAGATCTACACGTTCAGAGTTCTACAGTCCGA anchored 5'     50           0
+
+--------------------------------------
+First read: Adapter RNAPCRPrimerIndex1
+--------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGTGATGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+--------------------------------------
+First read: Adapter RNAPCRPrimerIndex2
+--------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATACATCGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+--------------------------------------
+First read: Adapter RNAPCRPrimerIndex3
+--------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCCTAAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+--------------------------------------
+First read: Adapter RNAPCRPrimerIndex4
+--------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTGGTCAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+--------------------------------------
+First read: Adapter RNAPCRPrimerIndex5
+--------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCACTGTGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+--------------------------------------
+First read: Adapter RNAPCRPrimerIndex6
+--------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATATTGGCGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+--------------------------------------
+First read: Adapter RNAPCRPrimerIndex7
+--------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGATCTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+--------------------------------------
+First read: Adapter RNAPCRPrimerIndex8
+--------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTCAAGTGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+--------------------------------------
+First read: Adapter RNAPCRPrimerIndex9
+--------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCTGATCGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex10
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATAAGCTAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex11
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGTAGCCGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex12
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTACAAGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex13
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTTGACTGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex14
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGGAACTGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex15
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTGACATGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex16
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGGACGGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex17
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCTCTACGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex18
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCGGACGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex19
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTTTCACGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex20
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGGCCACGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex21
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGAAACGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex22
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGTACGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex23
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCCACTCGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex24
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCTACCGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex25
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATATCAGTGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex26
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCTCATGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex27
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATAGGAATGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex28
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCTTTTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex29
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTAGTTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex30
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCCGGTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex31
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATATCGTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex32
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTGAGTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex33
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGCCTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex34
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCCATGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex35
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATAAAATGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex36
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTGTTGGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex37
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATATTCCGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex38
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATAGCTAGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex39
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGTATAGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex40
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTCTGAGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex41
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGTCGTCGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex42
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGATTAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex43
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCTGTAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex44
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATATTATAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex45
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGAATGAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex46
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTCGGGAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex47
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCTTCGAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+First read: Adapter RNAPCRPrimerIndex48
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTGCCGAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+First read: Adapter ABIDynabeadEcoPOligo
+----------------------------------------
+
+Sequence                      Type        Length Trimmed (x)
+----------------------------- ----------- ------ -----------
+CTGATCTAGAGGTACCGGATCCCAGCAGT anchored 5'     29           0
+
+-------------------------------------
+First read: Adapter ABISolid3AdapterA
+-------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+CTGCCCCGGGTTCCTCATTCTCTCAGCAGCATG anchored 5'     33           0
+
+-------------------------------------
+First read: Adapter ABISolid3AdapterB
+-------------------------------------
+
+Sequence                                  Type        Length Trimmed (x)
+----------------------------------------- ----------- ------ -----------
+CCACTACGCCTCCGCTTTCCTCTCTATGGGCAGTCGGTGAT anchored 5'     41           0
+
+----------------------------------------
+First read: Adapter ABISolid35'AMPPrimer
+----------------------------------------
+
+Sequence                     Type        Length Trimmed (x)
+---------------------------- ----------- ------ -----------
+CCACTACGCCTCCGCTTTCCTCTCTATG anchored 5'     28           0
+
+----------------------------------------
+First read: Adapter ABISolid33'AMPPrimer
+----------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CTGCCCCGGGTTCCTCATTCT anchored 5'     21           0
+
+------------------------------------------------
+First read: Adapter ABISolid3EF1alphaSensePrimer
+------------------------------------------------
+
+Sequence            Type        Length Trimmed (x)
+------------------- ----------- ------ -----------
+CATGTGTGTTGAGAGCTTC anchored 5'     19           0
+
+----------------------------------------------------
+First read: Adapter ABISolid3EF1alphaAntisensePrimer
+----------------------------------------------------
+
+Sequence            Type        Length Trimmed (x)
+------------------- ----------- ------ -----------
+GAAAACCAAAGTGGTCCAC anchored 5'     19           0
+
+-----------------------------------------------
+First read: Adapter ABISolid3GAPDHForwardPrimer
+-----------------------------------------------
+
+Sequence            Type        Length Trimmed (x)
+------------------- ----------- ------ -----------
+TTAGCACCCCTGGCCAAGG anchored 5'     19           0
+
+-----------------------------------------------
+First read: Adapter ABISolid3GAPDHReversePrimer
+-----------------------------------------------
+
+Sequence             Type        Length Trimmed (x)
+-------------------- ----------- ------ -----------
+CTTACTCCTTGGAGGCCATG anchored 5'     20           0
+
+-------------------------------------
+First read: Adapter HaloPlexAdapater1
+-------------------------------------
+
+Sequence                           Type        Length Trimmed (x)
+---------------------------------- ----------- ------ -----------
+AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC anchored 5'     34           0
+
+-------------------------------------
+First read: Adapter HaloPlexAdapater2
+-------------------------------------
+
+Sequence                                                   Type        Length Trimmed (x)
+---------------------------------------------------------- ----------- ------ -----------
+AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT anchored 5'     58           0
+
+---------------------------------
+Second read: Adapter UserDefined1
+---------------------------------
+
+Sequence                    Type        Length Trimmed (x)
+--------------------------- ----------- ------ -----------
+AAAAAAAAAAAGGGGGGGGGGGGGGGG anchored 3'     27           0
+
+---------------------------------
+Second read: Adapter UserDefined2
+---------------------------------
+
+Sequence                                 Type        Length Trimmed (x)
+---------------------------------------- ----------- ------ -----------
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA anchored 3'     40         566
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-39 bp: 5; 40 bp: 6
+
+Overview of removed sequences:
+length count expect max.err error counts          
+                            0  1  2  3  4  5   6  
+------ ----- ------ ------- ----------------------
+    40   566    0.0       6 80 38 58 78 84 109 119
+
+---------------------------------
+Second read: Adapter UserDefined3
+---------------------------------
+
+Sequence                                        Type        Length Trimmed (x)
+----------------------------------------------- ----------- ------ -----------
+GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG anchored 3'     47           1
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-39 bp: 5; 40-45 bp: 6; 46-47 bp: 7
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0           
+------ ----- ------ ------- ------------
+    47     1    0.0       7 1           
+
+---------------------------------------
+Second read: Adapter HaloPlexAdapater1a
+---------------------------------------
+
+Sequence                           Type        Length Trimmed (x)
+---------------------------------- ----------- ------ -----------
+AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC anchored 3'     34           0
+
+---------------------------------------
+Second read: Adapter HaloPlexAdapater1b
+---------------------------------------
+
+Sequence                                                   Type        Length Trimmed (x)
+---------------------------------------------------------- ----------- ------ -----------
+AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT anchored 3'     58      12,732
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-39 bp: 5; 40-45 bp: 6; 46-52 bp: 7; 53-58 bp: 8
+
+Overview of removed sequences:
+length count expect max.err error counts                         
+                            0   1    2   3   4   5   6   7   8   
+------ ----- ------ ------- -------------------------------------
+    50 2,403    0.0       7 0   0    0   0   0   0   0   0   2403
+    51    21    0.0       7 0   0    0   0   0   0   0   17  4   
+    52   724    0.0       7 0   0    0   0   0   0   647 60  17  
+    53   653    0.0       7 0   0    0   0   0   537 82  19  15  
+    54   823    0.0       8 0   0    0   0   701 71  33  10  8   
+    55   790    0.0       8 0   0    0   640 85  35  14  12  4   
+    56   818    0.0       8 0   0    588 147 48  19  8   4   4   
+    57 1,517    0.0       8 0   1287 153 42  17  10  5   1   2   
+    58   583    0.0       8 474 70   25  7   3   1   1   1   1   
+    59   565    0.0       8 0   419  83  32  16  9   3   3       
+    60   741    0.0       8 0   0    587 102 30  11  6   2   3   
+    61   613    0.0       8 0   0    0   485 74  32  14  5   3   
+    62   412    0.0       8 0   0    0   0   331 57  16  5   3   
+    63   510    0.0       8 0   0    0   0   0   428 57  19  6   
+    64   611    0.0       8 0   0    0   0   0   0   527 65  19  
+    65   608    0.0       8 0   0    0   0   0   0   0   535 73  
+    66   340    0.0       8 0   0    0   0   0   0   0   0   340 
+
+----------------------------------
+Second read: Adapter HaloPlexKmer1
+----------------------------------
+
+Sequence                                       Type        Length Trimmed (x)
+---------------------------------------------- ----------- ------ -----------
+GAGATCGGAAGAGCACACGTCTGAACTCCAGTCACGAATCTGAATC anchored 5'     46           0
+
+----------------------------------
+Second read: Adapter HaloPlexKmer2
+----------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT anchored 5'     33           4
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-33 bp: 4
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0 1         
+------ ----- ------ ------- ------------
+    32     4    0.0       4 2 2         
+
+----------------------------------------------
+Second read: Adapter IlluminaSingleEndAdapter1
+----------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+GATCGGAAGAGCTCGTATGCCGTCTTCTGCTTG anchored 5'     33           0
+
+----------------------------------------------
+Second read: Adapter IlluminaSingleEndAdapter2
+----------------------------------------------
+
+Sequence                           Type        Length Trimmed (x)
+---------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGCTCTTCCGATCT anchored 5'     34           0
+
+------------------------------------------------
+Second read: Adapter IlluminaSingleEndPCRPrimer1
+------------------------------------------------
+
+Sequence                                                   Type        Length Trimmed (x)
+---------------------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     58           0
+
+------------------------------------------------
+Second read: Adapter IlluminaSingleEndPCRPrimer2
+------------------------------------------------
+
+Sequence                           Type        Length Trimmed (x)
+---------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGCTCTTCCGATCT anchored 5'     34           0
+
+------------------------------------------------------
+Second read: Adapter IlluminaSingleEndSequencingPrimer
+------------------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+ACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     33           6
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-33 bp: 4
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0 1 2 3     
+------ ----- ------ ------- ------------
+    30     2    0.0       4 0 0 1 1     
+    33     2    0.0       4 1 1         
+    36     2    0.0       4 0 0 1 1     
+
+----------------------------------------------
+Second read: Adapter IlluminaPairedEndAdapter1
+----------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+ACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     33           0
+
+----------------------------------------------
+Second read: Adapter IlluminaPairedEndAdapter2
+----------------------------------------------
+
+Sequence                         Type        Length Trimmed (x)
+-------------------------------- ----------- ------ -----------
+GATCGGAAGAGCGGTTCAGCAGGAATGCCGAG anchored 5'     32           6
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4
+
+Overview of removed sequences:
+length count expect max.err error counts
+                            0 1         
+------ ----- ------ ------- ------------
+    29     2    0.0       4 0 2         
+    30     2    0.0       4 0 2         
+    31     2    0.0       4 2           
+
+------------------------------------------------
+Second read: Adapter IlluminaPariedEndPCRPrimer1
+------------------------------------------------
+
+Sequence                                                   Type        Length Trimmed (x)
+---------------------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     58           0
+
+------------------------------------------------
+Second read: Adapter IlluminaPairedEndPCRPrimer2
+------------------------------------------------
+
+Sequence                                                      Type        Length Trimmed (x)
+------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT anchored 5'     61           0
+
+-------------------------------------------------------
+Second read: Adapter IlluminaPariedEndSequencingPrimer1
+-------------------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+ACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     33           0
+
+-------------------------------------------------------
+Second read: Adapter IlluminaPairedEndSequencingPrimer2
+-------------------------------------------------------
+
+Sequence                              Type        Length Trimmed (x)
+------------------------------------- ----------- ------ -----------
+CGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT anchored 5'     37           0
+
+----------------------------------------------------
+Second read: Adapter IlluminaDpnIIexpressionAdapter1
+----------------------------------------------------
+
+Sequence                   Type        Length Trimmed (x)
+-------------------------- ----------- ------ -----------
+ACAGGTTCAGAGTTCTACAGTCCGAC anchored 5'     26           0
+
+----------------------------------------------------
+Second read: Adapter IlluminaDpnIIexpressionAdapter2
+----------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+------------------------------------------------------
+Second read: Adapter IlluminaDpnIIexpressionPCRPrimer1
+------------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+------------------------------------------------------
+Second read: Adapter IlluminaDpnIIexpressionPCRPrimer2
+------------------------------------------------------
+
+Sequence                                     Type        Length Trimmed (x)
+-------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGACAGGTTCAGAGTTCTACAGTCCGA anchored 5'     44           0
+
+------------------------------------------------------------
+Second read: Adapter IlluminaDpnIIexpressionSequencingPrimer
+------------------------------------------------------------
+
+Sequence                         Type        Length Trimmed (x)
+-------------------------------- ----------- ------ -----------
+CGACAGGTTCAGAGTTCTACAGTCCGACGATC anchored 5'     32           0
+
+-----------------------------------------------------
+Second read: Adapter IlluminaNlaIIIexpressionAdapter1
+-----------------------------------------------------
+
+Sequence                      Type        Length Trimmed (x)
+----------------------------- ----------- ------ -----------
+ACAGGTTCAGAGTTCTACAGTCCGACATG anchored 5'     29           0
+
+-----------------------------------------------------
+Second read: Adapter IlluminaNlaIIIexpressionAdapter2
+-----------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+-------------------------------------------------------
+Second read: Adapter IlluminaNlaIIIexpressionPCRPrimer1
+-------------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+-------------------------------------------------------
+Second read: Adapter IlluminaNlaIIIexpressionPCRPrimer2
+-------------------------------------------------------
+
+Sequence                                     Type        Length Trimmed (x)
+-------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGACAGGTTCAGAGTTCTACAGTCCGA anchored 5'     44           0
+
+-------------------------------------------------------------
+Second read: Adapter IlluminaNlaIIIexpressionSequencingPrimer
+-------------------------------------------------------------
+
+Sequence                         Type        Length Trimmed (x)
+-------------------------------- ----------- ------ -----------
+CCGACAGGTTCAGAGTTCTACAGTCCGACATG anchored 5'     32           0
+
+---------------------------------------------
+Second read: Adapter IlluminaSmallRNAAdapter1
+---------------------------------------------
+
+Sequence                   Type        Length Trimmed (x)
+-------------------------- ----------- ------ -----------
+GTTCAGAGTTCTACAGTCCGACGATC anchored 5'     26           0
+
+---------------------------------------------
+Second read: Adapter IlluminaSmallRNAAdapter2
+---------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+TGGAATTCTCGGGTGCCAAGG anchored 5'     21           0
+
+---------------------------------------------
+Second read: Adapter IlluminaSmallRNARTPrimer
+---------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+-----------------------------------------------
+Second read: Adapter IlluminaSmallRNAPCRPrimer1
+-----------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+-----------------------------------------------
+Second read: Adapter IlluminaSmallRNAPCRPrimer2
+-----------------------------------------------
+
+Sequence                                     Type        Length Trimmed (x)
+-------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGACAGGTTCAGAGTTCTACAGTCCGA anchored 5'     44           0
+
+-----------------------------------------------------
+Second read: Adapter IlluminaSmallRNASequencingPrimer
+-----------------------------------------------------
+
+Sequence                         Type        Length Trimmed (x)
+-------------------------------- ----------- ------ -----------
+CGACAGGTTCAGAGTTCTACAGTCCGACGATC anchored 5'     32           0
+
+-------------------------------------------------
+Second read: Adapter IlluminaMultiplexingAdapter1
+-------------------------------------------------
+
+Sequence             Type        Length Trimmed (x)
+-------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCT anchored 5'     20           0
+
+-------------------------------------------------
+Second read: Adapter IlluminaMultiplexingAdapter2
+-------------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+ACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     33           0
+
+------------------------------------------------------
+Second read: Adapter IlluminaMultiplexingPCRPrimer1.01
+------------------------------------------------------
+
+Sequence                                                   Type        Length Trimmed (x)
+---------------------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     58           0
+
+------------------------------------------------------
+Second read: Adapter IlluminaMultiplexingPCRPrimer2.01
+------------------------------------------------------
+
+Sequence                           Type        Length Trimmed (x)
+---------------------------------- ----------- ------ -----------
+GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT anchored 5'     34           0
+
+--------------------------------------------------------------
+Second read: Adapter IlluminaMultiplexingRead1SequencingPrimer
+--------------------------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+ACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     33           0
+
+--------------------------------------------------------------
+Second read: Adapter IlluminaMultiplexingIndexSequencingPrimer
+--------------------------------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCAC anchored 5'     33           0
+
+--------------------------------------------------------------
+Second read: Adapter IlluminaMultiplexingRead2SequencingPrimer
+--------------------------------------------------------------
+
+Sequence                           Type        Length Trimmed (x)
+---------------------------------- ----------- ------ -----------
+GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT anchored 5'     34           0
+
+--------------------------------------------
+Second read: Adapter IlluminaPCRPrimerIndex1
+--------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGTGATGTGACTGGAGTTC anchored 5'     43           0
+
+--------------------------------------------
+Second read: Adapter IlluminaPCRPrimerIndex2
+--------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATACATCGGTGACTGGAGTTC anchored 5'     43           0
+
+--------------------------------------------
+Second read: Adapter IlluminaPCRPrimerIndex3
+--------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCCTAAGTGACTGGAGTTC anchored 5'     43           0
+
+--------------------------------------------
+Second read: Adapter IlluminaPCRPrimerIndex4
+--------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTGGTCAGTGACTGGAGTTC anchored 5'     43           0
+
+--------------------------------------------
+Second read: Adapter IlluminaPCRPrimerIndex5
+--------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCACTGTGTGACTGGAGTTC anchored 5'     43           0
+
+--------------------------------------------
+Second read: Adapter IlluminaPCRPrimerIndex6
+--------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATATTGGCGTGACTGGAGTTC anchored 5'     43           0
+
+--------------------------------------------
+Second read: Adapter IlluminaPCRPrimerIndex7
+--------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGATCTGGTGACTGGAGTTC anchored 5'     43           0
+
+--------------------------------------------
+Second read: Adapter IlluminaPCRPrimerIndex8
+--------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTCAAGTGTGACTGGAGTTC anchored 5'     43           0
+
+--------------------------------------------
+Second read: Adapter IlluminaPCRPrimerIndex9
+--------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCTGATCGTGACTGGAGTTC anchored 5'     43           0
+
+---------------------------------------------
+Second read: Adapter IlluminaPCRPrimerIndex10
+---------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATAAGCTAGTGACTGGAGTTC anchored 5'     43           0
+
+---------------------------------------------
+Second read: Adapter IlluminaPCRPrimerIndex11
+---------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGTAGCCGTGACTGGAGTTC anchored 5'     43           0
+
+---------------------------------------------
+Second read: Adapter IlluminaPCRPrimerIndex12
+---------------------------------------------
+
+Sequence                                    Type        Length Trimmed (x)
+------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTACAAGGTGACTGGAGTTC anchored 5'     43           0
+
+---------------------------------------------
+Second read: Adapter IlluminaDpnIIGexAdapter1
+---------------------------------------------
+
+Sequence                   Type        Length Trimmed (x)
+-------------------------- ----------- ------ -----------
+GATCGTCGGACTGTAGAACTCTGAAC anchored 5'     26           0
+
+------------------------------------------------
+Second read: Adapter IlluminaDpnIIGexAdapter1.01
+------------------------------------------------
+
+Sequence                   Type        Length Trimmed (x)
+-------------------------- ----------- ------ -----------
+ACAGGTTCAGAGTTCTACAGTCCGAC anchored 5'     26           0
+
+---------------------------------------------
+Second read: Adapter IlluminaDpnIIGexAdapter2
+---------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+------------------------------------------------
+Second read: Adapter IlluminaDpnIIGexAdapter2.01
+------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+TCGTATGCCGTCTTCTGCTTG anchored 5'     21           0
+
+-----------------------------------------------
+Second read: Adapter IlluminaDpnIIGexPCRPrimer1
+-----------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+-----------------------------------------------
+Second read: Adapter IlluminaDpnIIGexPCRPrimer2
+-----------------------------------------------
+
+Sequence                                     Type        Length Trimmed (x)
+-------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGACAGGTTCAGAGTTCTACAGTCCGA anchored 5'     44           0
+
+-----------------------------------------------------
+Second read: Adapter IlluminaDpnIIGexSequencingPrimer
+-----------------------------------------------------
+
+Sequence                         Type        Length Trimmed (x)
+-------------------------------- ----------- ------ -----------
+CGACAGGTTCAGAGTTCTACAGTCCGACGATC anchored 5'     32           0
+
+-------------------------------------------------
+Second read: Adapter IlluminaNlaIIIGexAdapter1.01
+-------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+TCGGACTGTAGAACTCTGAAC anchored 5'     21           0
+
+-------------------------------------------------
+Second read: Adapter IlluminaNlaIIIGexAdapter1.02
+-------------------------------------------------
+
+Sequence                      Type        Length Trimmed (x)
+----------------------------- ----------- ------ -----------
+ACAGGTTCAGAGTTCTACAGTCCGACATG anchored 5'     29           0
+
+-------------------------------------------------
+Second read: Adapter IlluminaNlaIIIGexAdapter2.01
+-------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+-------------------------------------------------
+Second read: Adapter IlluminaNlaIIIGexAdapter2.02
+-------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+TCGTATGCCGTCTTCTGCTTG anchored 5'     21           0
+
+------------------------------------------------
+Second read: Adapter IlluminaNlaIIIGexPCRPrimer1
+------------------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGA anchored 5'     21           0
+
+------------------------------------------------
+Second read: Adapter IlluminaNlaIIIGexPCRPrimer2
+------------------------------------------------
+
+Sequence                                     Type        Length Trimmed (x)
+-------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGACAGGTTCAGAGTTCTACAGTCCGA anchored 5'     44           0
+
+------------------------------------------------------
+Second read: Adapter IlluminaNlaIIIGexSequencingPrimer
+------------------------------------------------------
+
+Sequence                         Type        Length Trimmed (x)
+-------------------------------- ----------- ------ -----------
+CCGACAGGTTCAGAGTTCTACAGTCCGACATG anchored 5'     32           0
+
+-----------------------------------------
+Second read: Adapter Illumina5pRNAAdapter
+-----------------------------------------
+
+Sequence                   Type        Length Trimmed (x)
+-------------------------- ----------- ------ -----------
+GTTCAGAGTTCTACAGTCCGACGATC anchored 5'     26           0
+
+----------------------------------------
+Second read: Adapter IlluminaRNAAdapter1
+----------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+TGGAATTCTCGGGTGCCAAGG anchored 5'     21           0
+
+-----------------------------------------------
+Second read: Adapter IlluminaSmallRNA3pAdapter1
+-----------------------------------------------
+
+Sequence                 Type        Length Trimmed (x)
+------------------------ ----------- ------ -----------
+ATCTCGTATGCCGTCTTCTGCTTG anchored 5'     24           0
+
+-------------------------------------------
+Second read: Adapter TruSeqUniversalAdapter
+-------------------------------------------
+
+Sequence                                                   Type        Length Trimmed (x)
+---------------------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT anchored 5'     58           0
+
+----------------------------------------
+Second read: Adapter TruSeqAdapterIndex1
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACATCACGATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter TruSeqAdapterIndex2
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACCGATGTATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter TruSeqAdapterIndex3
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACTTAGGCATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter TruSeqAdapterIndex4
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACTGACCAATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter TruSeqAdapterIndex5
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACACAGTGATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter TruSeqAdapterIndex6
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGCCAATATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter TruSeqAdapterIndex7
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACCAGATCATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter TruSeqAdapterIndex8
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACACTTGAATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter TruSeqAdapterIndex9
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGATCAGATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex10
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACTAGCTTATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex11
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGGCTACATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex12
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACCTTGTAATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex13
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACAGTCAACTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex14
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACAGTTCCGTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex15
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACATGTCAGTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex16
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACCCGTCCCTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex18
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGTCCGCATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex19
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGTGAAACTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex20
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGTGGCCTTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex21
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACGTTTCGGTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex22
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACCGTACGTTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex23
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACCCACTCTTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex25
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACACTGATATCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter TruSeqAdapterIndex27
+-----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+GATCGGAAGAGCACACGTCTGAACTCCAGTCACATTCCTTTCTCGTATGCCGTCTTCTGCTTG anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter IlluminaRNARTPrimer
+----------------------------------------
+
+Sequence               Type        Length Trimmed (x)
+---------------------- ----------- ------ -----------
+GCCTTGGCACCCGAGAATTCCA anchored 5'     22           0
+
+-----------------------------------------
+Second read: Adapter IlluminaRNAPCRPrimer
+-----------------------------------------
+
+Sequence                                           Type        Length Trimmed (x)
+-------------------------------------------------- ----------- ------ -----------
+AATGATACGGCGACCACCGAGATCTACACGTTCAGAGTTCTACAGTCCGA anchored 5'     50           0
+
+---------------------------------------
+Second read: Adapter RNAPCRPrimerIndex1
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGTGATGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+Second read: Adapter RNAPCRPrimerIndex2
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATACATCGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+Second read: Adapter RNAPCRPrimerIndex3
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCCTAAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+Second read: Adapter RNAPCRPrimerIndex4
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTGGTCAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+Second read: Adapter RNAPCRPrimerIndex5
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCACTGTGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+Second read: Adapter RNAPCRPrimerIndex6
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATATTGGCGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+Second read: Adapter RNAPCRPrimerIndex7
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGATCTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+Second read: Adapter RNAPCRPrimerIndex8
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTCAAGTGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+---------------------------------------
+Second read: Adapter RNAPCRPrimerIndex9
+---------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCTGATCGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex10
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATAAGCTAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex11
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGTAGCCGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex12
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTACAAGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex13
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTTGACTGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex14
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGGAACTGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex15
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTGACATGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex16
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGGACGGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex17
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCTCTACGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex18
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCGGACGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex19
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTTTCACGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex20
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGGCCACGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex21
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGAAACGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex22
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGTACGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex23
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCCACTCGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex24
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCTACCGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex25
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATATCAGTGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex26
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCTCATGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex27
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATAGGAATGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex28
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCTTTTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex29
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTAGTTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex30
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCCGGTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex31
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATATCGTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex32
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTGAGTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex33
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGCCTGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex34
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCCATGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex35
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATAAAATGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex36
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTGTTGGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex37
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATATTCCGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex38
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATAGCTAGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex39
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGTATAGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex40
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTCTGAGGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex41
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGTCGTCGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex42
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCGATTAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex43
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGCTGTAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex44
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATATTATAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex45
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATGAATGAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex46
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTCGGGAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex47
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATCTTCGAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+----------------------------------------
+Second read: Adapter RNAPCRPrimerIndex48
+----------------------------------------
+
+Sequence                                                        Type        Length Trimmed (x)
+--------------------------------------------------------------- ----------- ------ -----------
+CAAGCAGAAGACGGCATACGAGATTGCCGAGTGACTGGAGTTCCTTGGCACCCGAGAATTCCA anchored 5'     63           0
+
+-----------------------------------------
+Second read: Adapter ABIDynabeadEcoPOligo
+-----------------------------------------
+
+Sequence                      Type        Length Trimmed (x)
+----------------------------- ----------- ------ -----------
+CTGATCTAGAGGTACCGGATCCCAGCAGT anchored 5'     29           0
+
+--------------------------------------
+Second read: Adapter ABISolid3AdapterA
+--------------------------------------
+
+Sequence                          Type        Length Trimmed (x)
+--------------------------------- ----------- ------ -----------
+CTGCCCCGGGTTCCTCATTCTCTCAGCAGCATG anchored 5'     33           0
+
+--------------------------------------
+Second read: Adapter ABISolid3AdapterB
+--------------------------------------
+
+Sequence                                  Type        Length Trimmed (x)
+----------------------------------------- ----------- ------ -----------
+CCACTACGCCTCCGCTTTCCTCTCTATGGGCAGTCGGTGAT anchored 5'     41           0
+
+-----------------------------------------
+Second read: Adapter ABISolid35'AMPPrimer
+-----------------------------------------
+
+Sequence                     Type        Length Trimmed (x)
+---------------------------- ----------- ------ -----------
+CCACTACGCCTCCGCTTTCCTCTCTATG anchored 5'     28           0
+
+-----------------------------------------
+Second read: Adapter ABISolid33'AMPPrimer
+-----------------------------------------
+
+Sequence              Type        Length Trimmed (x)
+--------------------- ----------- ------ -----------
+CTGCCCCGGGTTCCTCATTCT anchored 5'     21           0
+
+-------------------------------------------------
+Second read: Adapter ABISolid3EF1alphaSensePrimer
+-------------------------------------------------
+
+Sequence            Type        Length Trimmed (x)
+------------------- ----------- ------ -----------
+CATGTGTGTTGAGAGCTTC anchored 5'     19           0
+
+-----------------------------------------------------
+Second read: Adapter ABISolid3EF1alphaAntisensePrimer
+-----------------------------------------------------
+
+Sequence            Type        Length Trimmed (x)
+------------------- ----------- ------ -----------
+GAAAACCAAAGTGGTCCAC anchored 5'     19           0
+
+------------------------------------------------
+Second read: Adapter ABISolid3GAPDHForwardPrimer
+------------------------------------------------
+
+Sequence            Type        Length Trimmed (x)
+------------------- ----------- ------ -----------
+TTAGCACCCCTGGCCAAGG anchored 5'     19           0
+
+------------------------------------------------
+Second read: Adapter ABISolid3GAPDHReversePrimer
+------------------------------------------------
+
+Sequence             Type        Length Trimmed (x)
+-------------------- ----------- ------ -----------
+CTTACTCCTTGGAGGCCATG anchored 5'     20           0
+
+--------------------------------------
+Second read: Adapter HaloPlexAdapater1
+--------------------------------------
+
+Sequence                           Type        Length Trimmed (x)
+---------------------------------- ----------- ------ -----------
+AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC anchored 5'     34           0
+
+--------------------------------------
+Second read: Adapter HaloPlexAdapater2
+--------------------------------------
+
+Sequence                                                   Type        Length Trimmed (x)
+---------------------------------------------------------- ----------- ------ -----------
+AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT anchored 5'     58          75
+
+No. of allowed errors:
+0-5 bp: 0; 6-12 bp: 1; 13-19 bp: 2; 20-25 bp: 3; 26-32 bp: 4; 33-39 bp: 5; 40-45 bp: 6; 46-52 bp: 7; 53-58 bp: 8
+
+Overview of removed sequences:
+length count expect max.err error counts     
+                            0  1  2 3 4 5 6 7
+------ ----- ------ ------- -----------------
+    52     1    0.0       7 0  0  0 0 0 1    
+    55     1    0.0       8 0  0  0 0 0 0 0 1
+    56     4    0.0       8 0  0  2 1 1      
+    57    10    0.0       8 0  8  1 0 0 0 1  
+    58    57    0.0       8 42 10 2 3        
+    59     2    0.0       8 0  2             
+
+WARNING:
+  One or more of your adapter sequences may be incomplete. Please see
+  the detailed output above.

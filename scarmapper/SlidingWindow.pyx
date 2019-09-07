@@ -115,5 +115,4 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
     # Count number of reads passing all filters
     summary_data[1] += 1
 
-    # read_results_list = [ldel, rdel, consensus_insertion, consensus_microhomology, consensus, target_lft_junction, target_rt_junction]
-    return [ldel, rdel, consensus_insertion, consensus_microhomology, consensus, target_lft_junction, target_rt_junction], summary_data
+    return [ldel, rdel, consensus_insertion, consensus_microhomology, consensus, consensus_lft_junction, consensus_rt_junction, target_lft_junction, target_rt_junction], summary_data
