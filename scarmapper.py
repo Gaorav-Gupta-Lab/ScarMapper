@@ -7,17 +7,19 @@
 """
 import datetime
 import os
+import collections
 import subprocess
 import argparse
 import sys
 import time
 from distutils.util import strtobool
-import scarmapper.INDEL_Processing as Indel_Processing
+from scipy.stats import gmean
+from scarmapper import TargetMapper as Target_Mapper, INDEL_Processing as Indel_Processing
 from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FASTQ_Tools
 
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.3.0'
+__version__ = '0.4.0'
 __package__ = 'ScarMapper'
 
 
@@ -82,23 +84,62 @@ def main(command_line_args=None):
 
     options_parser = Tool_Box.options_file(parser)
     args = options_parser.parse_args()
+    args, options_parser = string_to_boolean(args, options_parser)
+
+    # Check options file for errors.
     error_checking(args)
+
     log = Tool_Box.Logger(args)
     Tool_Box.log_environment_info(log, args, command_line_args)
     start_time = time.time()
     module_name = ""
-    args, options_parser = string_to_boolean(args, options_parser)
-    log.info("Sending FASTQ files to FASTQ preprocessor.")
-    # fastq_data = FASTQ_Tools.FastqSplitter(args, log, FASTQ_Tools.FASTQ_Reader(args.FASTQ1, log), FASTQ_Tools.FASTQ_Reader(args.FASTQ2, log))
-    # fq1, fq2 = fastq_data.file_writer()
-    fq1 = FASTQ_Tools.FASTQ_Reader(args.FASTQ1, log)
-    fq2 = FASTQ_Tools.FASTQ_Reader(args.FASTQ2, log)
 
-    if args.Atropos_Trim:
-        fq1, fq2 = atropos_trim(args, log, fq1, fq2, "ScarMapper")
+    if args.IndelProcessing:
+        log.info("Sending FASTQ files to FASTQ preprocessor.")
+        # fastq_data = FASTQ_Tools.FastqSplitter(args, log, FASTQ_Tools.FASTQ_Reader(args.FASTQ1, log), FASTQ_Tools.FASTQ_Reader(args.FASTQ2, log))
 
-    indel_processing = Indel_Processing.DataProcessing(log, args, fq1, fq2, run_start)
-    indel_processing.main_loop()
+        fq1 = FASTQ_Tools.FASTQ_Reader(args.FASTQ1, log)
+        fq2 = FASTQ_Tools.FASTQ_Reader(args.FASTQ2, log)
+
+        if args.Atropos_Trim:
+            fq1, fq2 = atropos_trim(args, log, fq1, fq2, "ScarMapper")
+
+        targetmapper = Target_Mapper.TargetMapper(log, args)
+        indel_processing = Indel_Processing.DataProcessing(log, args, run_start, fq1, fq2, targetmapper.targets)
+        indel_processing.main_loop()
+    elif not args.IndelProcessing:
+        log.info("Process Replicates.")
+        index_line_list = Tool_Box.FileParser.indices(log, args.Index_File)
+        data_dict = collections.defaultdict(list)
+
+        for l in index_line_list:
+            sample_name = l[2]
+            file_name = "{}{}_{}_ScarMapper_Frequency.txt".format(args.DataFiles, args.Job_Name, sample_name)
+            freq_file_data = Tool_Box.FileParser.indices(log, file_name)
+            for row in freq_file_data:
+                key = "{}|{}|{}|{}".format(row[2], row[3], row[5], row[7])
+                row_data = row[2:]
+
+                if key in data_dict:
+                    data_dict[key][0].append(float(row[1]))
+                else:
+                    data_dict[key] = [[float(row[1])], row_data]
+
+        # Process Data and Write Combined Frequency results file
+        freq_results_outstring = \
+            "# Frequency\tLeft Deletions\tRight Deletions\tDeletion Size\tMicrohomology\tMicrohomology Size\t" \
+            "Insertion\tInsertion Size\tLeft Template\tRight Template\tConsensus Left Junction\t" \
+            "Consensus Right Junction\tTarget Left Junction\tTarget Right Junction\tConsensus\tTarget Region\n"
+        for key, row_list in data_dict.items():
+            row_string = "\t".join(row_list[1])
+            freq = gmean(row_list[0])
+            freq_results_outstring += "{}\t{}\n".format(freq, row_string)
+
+        freq_results_file = \
+            open("{}{}_Q4-24_ScarMapper_Frequency.txt".format(args.Working_Folder, args.Job_Name), "w")
+
+        freq_results_file.write(freq_results_outstring)
+        freq_results_file.close()
 
     warning = "\033[1;31m **See warnings above**\033[m" if log.warning_occurred else ''
     elapsed_time = int(time.time() - start_time)
@@ -110,26 +151,59 @@ def main(command_line_args=None):
 
 
 def error_checking(args):
+    """
+    Check parameter file for errors.
+    :param args:
+    """
     if not os.path.exists(args.Working_Folder):
-        print("\033[1;31mWARNING:\n\tWorking Folder Path: {} Not Found.  Check Options File."
+        print("\033[1;31mERROR:\n\tWorking Folder Path: {} Not Found.  Check Options File."
               .format(args.Working_Folder))
+        raise SystemExit(1)
+
+    if getattr(args, "FASTQ1", False) and getattr(args, "ConsensusSequence", False):
+        print("\033[1;31mERROR:\n\t--FASTQ1 and --ConsensusSequence both set.  Pick one or the other and try again.")
+        raise SystemExit(1)
+
+    if getattr(args, "FASTQ2", False) and getattr(args, "ConsensusSequence", False):
+        print("\033[1;31mERROR:\n\t--FASTQ2 and --ConsensusSequence both set.  Pick one or the other and try again.")
+        raise SystemExit(1)
+
+    if getattr(args, "FASTQ1", False) and not os.path.isfile(args.FASTQ1):
+        print("\033[1;31mERROR:\n\t--FASTQ1: {} Not Found.  Check Options File."
+              .format(args.FASTQ1))
+        raise SystemExit(1)
+
+    if getattr(args, "FASTQ2", False) and not os.path.isfile(args.FASTQ2):
+        print("\033[1;31mERROR:\n\t--FASTQ2: {} Not Found.  Check Options File."
+              .format(args.FASTQ2))
+        raise SystemExit(1)
+
+    if getattr(args, "ConsensusSequence", False) and not os.path.isfile(args.ConsensusSequence):
+        print("\033[1;31mERROR:\n\t--ConsensusSequence: {} Not Found.  Check Options File."
+              .format(args.FASTQ2))
+        raise SystemExit(1)
+
+    if getattr(args, "ConsensusSequence", False) and args.Atropos_Trim:
+        print("\033[1;31mERROR:\n\t--Atropos_Trim must be false when a --ConsensusSequence file is provided."
+              .format(args.FASTQ2))
         raise SystemExit(1)
 
 
 def string_to_boolean(args, options_parser):
     """
-    Converts strings to boolean.  Done to keep the eval function out of the code.
+    Converts strings to boolean.  Done to keep the eval() function out of the code.
     :param args:
     :param options_parser:
     :return:
     """
 
-    options_parser.set_defaults(ThruPLEX=bool(strtobool(args.ThruPLEX)))
+    # options_parser.set_defaults(ThruPLEX=bool(strtobool(args.ThruPLEX)))
     options_parser.set_defaults(Atropos_Trim=bool(strtobool(args.Atropos_Trim)))
     options_parser.set_defaults(Demultiplex=bool(strtobool(args.Demultiplex)))
-    options_parser.set_defaults(ScarMapper=bool(strtobool(args.ScarMapper)))
+    # options_parser.set_defaults(ScarMapper=bool(strtobool(args.ScarMapper)))
     options_parser.set_defaults(OutputRawData=bool(strtobool(args.OutputRawData)))
     options_parser.set_defaults(NextSeq_Trim=bool(strtobool(args.NextSeq_Trim)))
+    options_parser.set_defaults(IndelProcessing=bool(strtobool(args.IndelProcessing)))
 
     args = options_parser.parse_args()
 

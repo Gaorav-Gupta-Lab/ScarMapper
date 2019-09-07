@@ -15,6 +15,10 @@ class TargetMapper:
 
     @property
     def targets(self):
+        """
+        This will build and return the dictionary that contains the sgRNAs
+        :return:
+        """
         target_dict = collections.defaultdict(list)
         for line in self.target_data:
             target_dict[line[4]] = line
