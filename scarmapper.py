@@ -19,7 +19,7 @@ from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FAS
 
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 __package__ = 'ScarMapper'
 
 
@@ -96,7 +96,6 @@ def main(command_line_args=None):
 
     if args.IndelProcessing:
         log.info("Sending FASTQ files to FASTQ preprocessor.")
-        # fastq_data = FASTQ_Tools.FastqSplitter(args, log, FASTQ_Tools.FASTQ_Reader(args.FASTQ1, log), FASTQ_Tools.FASTQ_Reader(args.FASTQ2, log))
 
         fq1 = FASTQ_Tools.FASTQ_Reader(args.FASTQ1, log)
         fq2 = FASTQ_Tools.FASTQ_Reader(args.FASTQ2, log)
