@@ -13,7 +13,7 @@ exit
 
 --Ref_Seq	/mnt/hgfs/OneDrive/Bioinformatics/RefSeq/GRCm38/GRCm38.p6.fa.gz
 --Master_Index_File	/mnt/hgfs/OneDrive/Bioinformatics/Indices/Master_Lists/Ramsden_Rosa26a_Oligos.bed
---Index_File	/mnt/hgfs/OneDrive_UNC/Projects/ScarMapper/docs/Ramsden_Index3.bed
+--Index_File	/mnt/hgfs/OneDrive_UNC/Projects/ScarMapper/docs/Ramsden_Index3_TEST.bed
 --Target_File	/mnt/hgfs/OneDrive_UNC/Projects/ScarMapper/docs/ScarMapper_Targets.txt
 
 --Working_Folder	/mnt/hgfs/Drive_D/ScarMapper_Testing/

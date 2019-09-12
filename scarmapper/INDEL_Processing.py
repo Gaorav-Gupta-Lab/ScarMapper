@@ -8,17 +8,15 @@
 import collections
 import datetime
 import itertools
-import os
-import statistics
 import subprocess
 import time
 import pathos
 import pysam
 from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
-from scarmapper import TargetMapper as Target_Mapper, SlidingWindow
+from scarmapper import SlidingWindow
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.4.1'
+__version__ = '0.6.0'
 __package__ = 'ScarMapper'
 
 
@@ -86,7 +84,9 @@ class ScarSearch:
         chrm = self.target_dict["Rosa26a"][0]
         self.sgrna = self.target_dict["Rosa26a"][5]
         self.target_region = refseq.fetch(chrm, start, stop)
-        self.cutsite_search(int(self.target_dict["Rosa26a"][3]) - int(self.target_dict["Rosa26a"][1]) - 50)
+        # Set the position of the CAS9 cut site relative to the 5' end of the target region using Python numbering.
+        self.cutsite = self.target_dict["Rosa26a"][3]-self.target_dict["Rosa26a"][1]-1
+        # self.cutsite_search(int(self.target_dict["Rosa26a"][3]) - int(self.target_dict["Rosa26a"][1]) - 50)
         self.window_mapping()
         loop_count = 0
         start_time = time.time()
@@ -161,9 +161,23 @@ class ScarSearch:
         self.log.info("Finished Processing {}".format(index_name))
 
         # Write frequency results file
-        freq_results_file = \
-            open("{}{}_{}_ScarMapper_Frequency.txt"
-                 .format(self.args.Working_Folder, self.args.Job_Name, index_name), "w")
+        self.frequency_output(index_name, results_freq_dict, junction_type_data)
+
+        # Format and output raw data if user has so chosen.
+        if self.args.OutputRawData:
+            self.raw_data_output(index_name, read_results_list)
+
+        return self.summary_data
+
+    def frequency_output(self, index_name, results_freq_dict, junction_type_data):
+        """
+        Format data and write frequency file.
+
+        :param index_name:
+        :param results_freq_dict:
+        :param junction_type_data:
+        """
+        self.log.info("Writing Frequency File for {}".format(index_name))
 
         freq_results_outstring = \
             "# Total\tFrequency\tLeft Deletions\tRight Deletions\tDeletion Size\tMicrohomology\tMicrohomology Size\t" \
@@ -178,6 +192,7 @@ class ScarSearch:
             insertion = results_freq_dict[freq_key][1][2]
             ins_size = len(insertion)
             consensus = results_freq_dict[freq_key][1][4]
+            target_region = self.target_region
             microhomology = results_freq_dict[freq_key][1][3]
             microhomology_size = len(microhomology)
             del_size = lft_del + rt_del + microhomology_size
@@ -187,6 +202,19 @@ class ScarSearch:
             template_rt_junction = results_freq_dict[freq_key][1][8]
             lft_template = ""
             rt_template = ""
+
+            # If sgRNA is from 3' strand we need to swap labels and reverse compliment sequences.
+            if self.target_dict["Rosa26a"][6] == "YES":
+                rt_del = len(results_freq_dict[freq_key][1][0])
+                lft_del = len(results_freq_dict[freq_key][1][1])
+                microhomology = Sequence_Magic.rcomp(microhomology)
+                insertion = Sequence_Magic.rcomp(insertion)
+                consensus = Sequence_Magic.rcomp(consensus)
+                target_region = Sequence_Magic.rcomp(self.target_region)
+                consensus_rt_junction = results_freq_dict[freq_key][1][5]
+                consensus_lft_junction = results_freq_dict[freq_key][1][6]
+                template_rt_junction = results_freq_dict[freq_key][1][7]
+                template_lft_junction = results_freq_dict[freq_key][1][8]
 
             # TMEJ counts
             if del_size >= 4 and microhomology_size >= 2:
@@ -213,19 +241,17 @@ class ScarSearch:
             freq_results_outstring += "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n" \
                 .format(key_count, key_frequency, lft_del, rt_del, del_size, microhomology, microhomology_size,
                         insertion, ins_size, lft_template, rt_template, consensus_lft_junction, consensus_rt_junction,
-                        template_lft_junction, template_rt_junction, consensus, self.target_region)
+                        template_lft_junction, template_rt_junction, consensus, target_region)
+
+        freq_results_file = \
+            open("{}{}_{}_ScarMapper_Frequency.txt"
+                 .format(self.args.Working_Folder, self.args.Job_Name, index_name), "w")
 
         freq_results_file.write(freq_results_outstring)
         freq_results_file.close()
 
         # add the junction list to the summary data
         self.summary_data[8] = junction_type_data
-
-        # Format and output raw data if user has so chosen.
-        if self.args.OutputRawData:
-            self.raw_data_output(index_name, read_results_list)
-
-        return self.summary_data
 
     def templated_insertion_search(self, insertion, lft_target_junction, rt_target_junction):
         """
@@ -425,7 +451,7 @@ class DataProcessing:
         while not eof:
             # Debugging Code Block
             if self.args.Verbose == "DEBUG":
-                read_limit = 100000
+                read_limit = 300000
                 if self.read_count > read_limit:
                     if self.args.Demultiplex:
                         for index_name in self.fastq_data_dict:
@@ -547,12 +573,15 @@ class DataProcessing:
 
         for sample in sample_index_list:
             index_name = sample[0]
+
             if index_name in index_dict:
                 self.log.error("The index {0} is duplicated.  Correct the error in {1} and try again."
                                .format(sample[0], self.args.Index_File))
                 raise SystemExit(1)
+
             sample_name = sample[1]
             sample_replicate = sample[2]
+
             if self.args.Platform == "Illumina":
                 self.log.error("The Illumina --Platform method is not yet implemented.")
                 raise SystemExit(1)
@@ -570,8 +599,9 @@ class DataProcessing:
                         right_index_len += 1
 
                 index_dict[index_name] = \
-                    [Sequence_Magic.rcomp(right_index_sequence.upper()), left_index_len, left_index_sequence.upper(),
-                     right_index_len, index_name, sample_name, sample_replicate]
+                    [Sequence_Magic.rcomp(right_index_sequence.upper()), right_index_len, left_index_sequence.upper(),
+                     left_index_len, index_name, sample_name, sample_replicate]
+
             else:
                 self.log.error("Only 'Illumina' or 'Ramsden' --Platform methods allowed.")
                 raise SystemExit(1)
@@ -634,8 +664,6 @@ class DataProcessing:
         """
 
         match_found = False
-        # left_found = False
-        # right_found = False
         left_seq = ""
         right_seq = ""
         index_key = 'unidentified'
