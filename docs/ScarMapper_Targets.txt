@@ -1,2 +1,2 @@
-# Chr	Start	Stop	CutSite	RegionName	sgRNA_Seq	Reverse Comp	Comments
-6	113075804	113076276	113076030	Rosa26a	ACTCCAGTCTTTCTAGAAGA	Yes	This is our first target.
+# Chr	Start	Stop	RegionName	sgRNA_Seq	Reverse Comp	Comments
+6	113075804	113076276	Rosa26a	ACTCCAGTCTTTCTAGAAGA	Yes	This is our first target.
