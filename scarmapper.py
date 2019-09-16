@@ -106,6 +106,7 @@ def main(command_line_args=None):
         targetmapper = Target_Mapper.TargetMapper(log, args)
         indel_processing = Indel_Processing.DataProcessing(log, args, run_start, fq1, fq2, targetmapper.targets)
         indel_processing.main_loop()
+
     elif not args.IndelProcessing:
         log.info("Process Replicates.")
         index_line_list = Tool_Box.FileParser.indices(log, args.Index_File)
@@ -113,7 +114,8 @@ def main(command_line_args=None):
 
         for l in index_line_list:
             sample_name = l[2]
-            file_name = "{}{}_{}_ScarMapper_Frequency.txt".format(args.DataFiles, args.Job_Name, sample_name)
+            index_name = l[0]
+            file_name = "{}{}_{}_ScarMapper_Frequency.txt".format(args.DataFiles, args.Job_Name, index_name)
             freq_file_data = Tool_Box.FileParser.indices(log, file_name)
             for row in freq_file_data:
                 key = "{}|{}|{}|{}".format(row[2], row[3], row[5], row[7])
@@ -135,7 +137,7 @@ def main(command_line_args=None):
             freq_results_outstring += "{}\t{}\n".format(freq, row_string)
 
         freq_results_file = \
-            open("{}{}_Q4-24_ScarMapper_Frequency.txt".format(args.Working_Folder, args.Job_Name), "w")
+            open("{}{}_{}_ScarMapper_Frequency.txt".format(args.Working_Folder, args.Job_Name, args.SampleName), "w")
 
         freq_results_file.write(freq_results_outstring)
         freq_results_file.close()
@@ -196,12 +198,11 @@ def string_to_boolean(args, options_parser):
     :return:
     """
 
-    # options_parser.set_defaults(ThruPLEX=bool(strtobool(args.ThruPLEX)))
-    options_parser.set_defaults(Atropos_Trim=bool(strtobool(args.Atropos_Trim)))
-    options_parser.set_defaults(Demultiplex=bool(strtobool(args.Demultiplex)))
-    # options_parser.set_defaults(ScarMapper=bool(strtobool(args.ScarMapper)))
-    options_parser.set_defaults(OutputRawData=bool(strtobool(args.OutputRawData)))
-    options_parser.set_defaults(NextSeq_Trim=bool(strtobool(args.NextSeq_Trim)))
+    if args.IndelProcessing == "True":
+        options_parser.set_defaults(Atropos_Trim=bool(strtobool(args.Atropos_Trim)))
+        options_parser.set_defaults(Demultiplex=bool(strtobool(args.Demultiplex)))
+        options_parser.set_defaults(OutputRawData=bool(strtobool(args.OutputRawData)))
+        options_parser.set_defaults(NextSeq_Trim=bool(strtobool(args.NextSeq_Trim)))
     options_parser.set_defaults(IndelProcessing=bool(strtobool(args.IndelProcessing)))
 
     args = options_parser.parse_args()

@@ -16,7 +16,7 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.6.0'
+__version__ = '0.6.1'
 __package__ = 'ScarMapper'
 
 
@@ -82,11 +82,9 @@ class ScarSearch:
         start = int(self.target_dict["Rosa26a"][1])
         stop = int(self.target_dict["Rosa26a"][2])
         chrm = self.target_dict["Rosa26a"][0]
-        self.sgrna = self.target_dict["Rosa26a"][5]
+        self.sgrna = self.target_dict["Rosa26a"][4]
         self.target_region = refseq.fetch(chrm, start, stop)
-        # Set the position of the CAS9 cut site relative to the 5' end of the target region using Python numbering.
-        self.cutsite = self.target_dict["Rosa26a"][3]-self.target_dict["Rosa26a"][1]-1
-        # self.cutsite_search(int(self.target_dict["Rosa26a"][3]) - int(self.target_dict["Rosa26a"][1]) - 50)
+        self.cutsite_search()
         self.window_mapping()
         loop_count = 0
         start_time = time.time()
@@ -204,7 +202,7 @@ class ScarSearch:
             rt_template = ""
 
             # If sgRNA is from 3' strand we need to swap labels and reverse compliment sequences.
-            if self.target_dict["Rosa26a"][6] == "YES":
+            if self.target_dict["Rosa26a"][5] == "YES":
                 rt_del = len(results_freq_dict[freq_key][1][0])
                 lft_del = len(results_freq_dict[freq_key][1][1])
                 microhomology = Sequence_Magic.rcomp(microhomology)
@@ -331,34 +329,36 @@ class ScarSearch:
         results_file.write(results_outstring)
         results_file.close()
 
-    def cutsite_search(self, expected_cut):
+    def cutsite_search(self):
         """
         Find the sgRNA cutsite on the gapped genomic DNA.
         :param expected_cut:
         """
-        cutposition = 225
-        target_site = self.sgrna[:6]  # found it best to search using only +/-3 nucleotides of the cutsite.
+
+        lft_position = 0
+        rt_position = len(self.sgrna)
+        upper_limit = len(self.target_region)
+        sgrna = self.sgrna
+        rcomp_sgrna = False
+        if self.target_dict["Rosa26a"][5] == 'YES':
+            sgrna = Sequence_Magic.rcomp(self.sgrna)
+            rcomp_sgrna = True
+
         cutsite_found = False
-        new_position = expected_cut
-
-        while not cutsite_found:
-            if new_position > len(self.target_region) * 0.6:
-                break
-
-            guide_query = self.target_region[new_position:new_position + len(target_site)]
-
-            if guide_query == target_site:
-                cutposition = new_position + 3
+        while not cutsite_found and rt_position < upper_limit:
+            if self.target_region[lft_position:rt_position] == sgrna:
                 cutsite_found = True
-            else:
-                new_position += 1
+                if rcomp_sgrna:
+                    self.cutsite = lft_position+3
+                else:
+                    self.cutsite = rt_position-4
 
-        # This is a minor problem.  Insertions at cutsite cause errors.
+            lft_position += 1
+            rt_position += 1
+
         if not cutsite_found:
-            while self.target_region[cutposition:cutposition + 1] == "-":
-                cutposition += 1
-
-        self.cutsite = cutposition
+            self.log.error("sgRNA {} does not map to locus {}; chr{}:{}-{}.  Check --Target_File and try again.")
+            raise SystemExit(1)
 
     def gapped_aligner(self, fasta_data):
         """
@@ -760,7 +760,7 @@ class DataProcessing:
                         nhej, nhej_fraction, non_microhomology_del, non_mh_del_fraction, large_ins, large_ins_fraction,
                         other_scar)
 
-        summary_outstring += "Unidentified\t{}\t{}\n" \
+        summary_outstring += "\nUnidentified\t{}\t{}" \
             .format(self.read_count_dict["unidentified"], self.read_count_dict["unidentified"] / self.read_count)
 
         summary_file.write(summary_outstring)

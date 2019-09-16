@@ -24,13 +24,12 @@ class TargetMapper:
             chromosome = line[0]
             start_pos = int(line[1])
             stop_pos = int(line[2])
-            genomic_cut_position = int(line[3])
-            locus_name = line[4]
-            sgrna_seq = line[5].upper()
-            rcomp = line[6].upper()
+            locus_name = line[3]
+            sgrna_seq = line[4].upper()
+            rcomp = line[5].upper()
 
-            target_dict[line[4]] = \
-                (chromosome, start_pos, stop_pos, genomic_cut_position, locus_name, sgrna_seq, rcomp)
+            target_dict[line[3]] = \
+                (chromosome, start_pos, stop_pos, locus_name, sgrna_seq, rcomp)
 
         return target_dict
 
