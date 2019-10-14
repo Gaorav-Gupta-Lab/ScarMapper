@@ -16,15 +16,18 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.6.1'
+__version__ = '0.7.0'
 __package__ = 'ScarMapper'
 
 
 class ScarSearch:
-    def __init__(self, log, args, target_dict, fastq):
+    def __init__(self, log, args, target_dict, index_dict, fastq, index_name, sequence_list):
         self.log = log
         self.args = args
         self.target_dict = target_dict
+        self.index_dict = index_dict
+        self.index_name = index_name
+        self.sequence_list = sequence_list
         self.fastq = fastq
         self.summary_data = None
         self.target_region = None
@@ -35,80 +38,98 @@ class ScarSearch:
         self.target_length = None
         self.left_target_windows = []
         self.right_target_windows = []
+        self.data_processing()
 
-    def window_mapping(self):
+    def window_mapping(self, target_region):
         """
         Predetermine all the sliding window results for the target region.
         """
-        self.target_length = len(self.target_region)
+        self.target_length = len(target_region)
         self.lower_limit = int(0.15 * self.target_length)
         self.upper_limit = int(0.85 * self.target_length)
         lft_position = self.cutsite-10
         rt_position = self.cutsite
 
         while rt_position > self.lower_limit:
-            self.left_target_windows.append(self.target_region[lft_position:rt_position])
+            self.left_target_windows.append(target_region[lft_position:rt_position])
             lft_position -= 1
             rt_position -= 1
 
         lft_position = self.cutsite
         rt_position = self.cutsite+10
         while lft_position < self.upper_limit:
-            self.right_target_windows.append(self.target_region[lft_position:rt_position])
+            self.right_target_windows.append(target_region[lft_position:rt_position])
             lft_position += 1
             rt_position += 1
 
-    def data_processing(self, data_list):
+    def data_processing(self):
         """
         Generate the consensus sequence and find indels.  Write the frequency file.  Called by pathos pool
         :param data_list:
         :return:
         """
 
-        index_name = data_list[0]
-        sequence_list = data_list[1]
+        # index_name = data_list[0]
+        # sequence_list = data_list[1]
 
-        self.log.info("Begin Processing {}".format(index_name))
+        self.log.info("Begin Processing {}".format(self.index_name))
         """
         Summary List: index_name, total aberrant, left deletions, right deletions, total deletions, left insertions, 
         right insertions, total insertions, microhomology, number filtered
         """
-
-        self.summary_data = [index_name, 0, 0, 0, 0, 0, 0, 0, 0]
+        target_name = self.index_dict[self.index_name][7]
+        self.summary_data = [self.index_name, 0, 0, 0, 0, 0, 0, 0, 0]
         junction_type_data = [0, 0, 0, 0, 0]
         read_results_list = []
         results_freq_dict = collections.defaultdict(list)
         refseq = pysam.FastaFile(self.args.Ref_Seq)
-        start = int(self.target_dict["Rosa26a"][1])
-        stop = int(self.target_dict["Rosa26a"][2])
-        chrm = self.target_dict["Rosa26a"][0]
-        self.sgrna = self.target_dict["Rosa26a"][4]
-        self.target_region = refseq.fetch(chrm, start, stop)
-        self.cutsite_search()
-        self.window_mapping()
+        start = int(self.target_dict[target_name][2])
+        stop = int(self.target_dict[target_name][3])
+        chrm = self.target_dict[target_name][1]
+        sgrna = self.target_dict[target_name][4]
+        target_region = refseq.fetch(chrm, start, stop)
+        self.cutsite_search(target_name, sgrna, target_region)
+        self.window_mapping(target_region)
         loop_count = 0
         start_time = time.time()
         split_time = start_time
 
-        for seq in sequence_list:
+        for seq in self.sequence_list:
 
             loop_count += 1
 
             if loop_count % 5000 == 0:
                 self.log.info("Processed {} reads of {} for {} in {} seconds. Elapsed time: {} seconds."
-                              .format(loop_count, len(sequence_list), index_name, time.time() - split_time,
+                              .format(loop_count, len(self.sequence_list), self.index_name, time.time() - split_time,
                                       time.time() - start_time))
                 split_time = time.time()
-
+            consensus_seq = ""
+            block_found = False
             if self.fastq:
                 # Generate a gapped simple consensus from the paired reads.
                 left_seq, right_seq = seq
+                # Muscle will not properly gap sequences with an overlap smaller than about 50 nucleotides.
+                # consensus_seq = \
+                #     self.gapped_aligner(">left\n{}\n>right\n{}\n"
+                #                         .format(left_seq, Sequence_Magic.rcomp(right_seq)))
+                left_block = left_seq[-10:]
+                rt_seq = Sequence_Magic.rcomp(right_seq)
+                right_limit = len(right_seq)-20
+                lft_position = 0
+                right_position = 10
 
-                consensus_seq = \
-                    self.gapped_aligner(">left\n{}\n>right\n{}\n"
-                                        .format(left_seq, Sequence_Magic.rcomp(right_seq)))
+                while right_position < right_limit and not block_found:
+                    test_window = rt_seq[lft_position:right_position]
+                    if left_block == test_window:
+                        consensus_seq = left_seq+rt_seq[right_position:]
+                        block_found = True
+                    lft_position += 1
+                    right_position += 1
             else:
                 consensus_seq = seq
+
+            if not block_found:
+                continue
 
             # No need to attempt an analysis of bad data.
             if consensus_seq.count("N") / len(consensus_seq) > float(self.args.N_Limit):
@@ -116,7 +137,7 @@ class ScarSearch:
                 continue
 
             # No need to analyze sequences that are too short.
-            if len(consensus_seq) <= 4*self.lower_limit:
+            if len(consensus_seq) <= 1*self.lower_limit:
                 self.summary_data[7] += 1
                 continue
 
@@ -131,7 +152,7 @@ class ScarSearch:
             '''
 
             sub_list, self.summary_data = \
-                SlidingWindow.sliding_window(consensus_seq, self.target_region, self.cutsite, self.target_length,
+                SlidingWindow.sliding_window(consensus_seq, target_region, self.cutsite, self.target_length,
                                              self.lower_limit, self.upper_limit, self.summary_data,
                                              self.left_target_windows, self.right_target_windows)
 
@@ -156,18 +177,18 @@ class ScarSearch:
         no_cut_list = results_freq_dict.pop("|||", [0])
         self.summary_data[6] = no_cut_list[0]
 
-        self.log.info("Finished Processing {}".format(index_name))
+        self.log.info("Finished Processing {}".format(self.index_name))
 
         # Write frequency results file
-        self.frequency_output(index_name, results_freq_dict, junction_type_data)
+        self.frequency_output(self.index_name, results_freq_dict, junction_type_data, target_region)
 
         # Format and output raw data if user has so chosen.
         if self.args.OutputRawData:
-            self.raw_data_output(index_name, read_results_list)
+            self.raw_data_output(self.index_name, read_results_list, target_region)
 
         return self.summary_data
 
-    def frequency_output(self, index_name, results_freq_dict, junction_type_data):
+    def frequency_output(self, index_name, results_freq_dict, junction_type_data, target_region):
         """
         Format data and write frequency file.
 
@@ -177,6 +198,7 @@ class ScarSearch:
         """
         self.log.info("Writing Frequency File for {}".format(index_name))
 
+        target_name = self.index_dict[index_name][7]
         freq_results_outstring = \
             "# Total\tFrequency\tLeft Deletions\tRight Deletions\tDeletion Size\tMicrohomology\tMicrohomology Size\t" \
             "Insertion\tInsertion Size\tLeft Template\tRight Template\tConsensus Left Junction\t" \
@@ -190,7 +212,7 @@ class ScarSearch:
             insertion = results_freq_dict[freq_key][1][2]
             ins_size = len(insertion)
             consensus = results_freq_dict[freq_key][1][4]
-            target_region = self.target_region
+            # target_region = self.target_region
             microhomology = results_freq_dict[freq_key][1][3]
             microhomology_size = len(microhomology)
             del_size = lft_del + rt_del + microhomology_size
@@ -202,17 +224,19 @@ class ScarSearch:
             rt_template = ""
 
             # If sgRNA is from 3' strand we need to swap labels and reverse compliment sequences.
-            if self.target_dict["Rosa26a"][5] == "YES":
+            if self.target_dict[target_name][5] == "YES":
                 rt_del = len(results_freq_dict[freq_key][1][0])
                 lft_del = len(results_freq_dict[freq_key][1][1])
                 microhomology = Sequence_Magic.rcomp(microhomology)
                 insertion = Sequence_Magic.rcomp(insertion)
                 consensus = Sequence_Magic.rcomp(consensus)
-                target_region = Sequence_Magic.rcomp(self.target_region)
-                consensus_rt_junction = results_freq_dict[freq_key][1][5]
-                consensus_lft_junction = results_freq_dict[freq_key][1][6]
-                template_rt_junction = results_freq_dict[freq_key][1][7]
-                template_lft_junction = results_freq_dict[freq_key][1][8]
+                target_region = Sequence_Magic.rcomp(target_region)
+                tmp_con_lft = consensus_lft_junction
+                tmp_target_lft = template_lft_junction
+                consensus_lft_junction = len(consensus)-consensus_rt_junction
+                consensus_rt_junction = len(consensus)-tmp_con_lft
+                template_lft_junction = len(target_region)-template_rt_junction
+                template_rt_junction = len(target_region)-tmp_target_lft
 
             # TMEJ counts
             if del_size >= 4 and microhomology_size >= 2:
@@ -230,7 +254,7 @@ class ScarSearch:
             elif ins_size >= 5:
                 junction_type_data[2] += key_count
                 lft_template, rt_template = \
-                    self.templated_insertion_search(insertion, template_lft_junction, template_rt_junction)
+                    self.templated_insertion_search(insertion, template_lft_junction, template_rt_junction, target_name, target_region)
 
             # Scars not part of the previous four
             else:
@@ -251,12 +275,13 @@ class ScarSearch:
         # add the junction list to the summary data
         self.summary_data[8] = junction_type_data
 
-    def templated_insertion_search(self, insertion, lft_target_junction, rt_target_junction):
+    def templated_insertion_search(self, insertion, lft_target_junction, rt_target_junction, target_name, target_region):
         """
         Search for left and right templates for insertions.
         :param insertion:
         :param lft_target_junction:
         :param rt_target_junction:
+        :param target_name:
         :return:
         """
         lft_query1 = Sequence_Magic.rcomp(insertion[:5])
@@ -275,10 +300,12 @@ class ScarSearch:
         rt_position = lft_target_junction
 
         while left_not_found and rt_position > lower_limit:
-            target_segment = self.target_region[lft_position:rt_position]
+            target_segment = target_region[lft_position:rt_position]
 
             if lft_query1 == target_segment or lft_query2 == target_segment:
                 lft_template = target_segment
+                if self.target_dict[target_name][5] == "YES":
+                    lft_template = Sequence_Magic.rcomp(target_segment)
                 left_not_found = False
 
             lft_position -= 1
@@ -288,9 +315,11 @@ class ScarSearch:
         lft_position = rt_target_junction
         rt_position = rt_target_junction+5
         while right_not_found and lft_position < upper_limit:
-            target_segment = self.target_region[lft_position:rt_position]
+            target_segment = target_region[lft_position:rt_position]
             if rt_query1 == target_segment or rt_query2 == target_segment:
                 rt_template = target_segment
+                if self.target_dict[target_name][5] == "YES":
+                    rt_template = Sequence_Magic.rcomp(target_segment)
                 right_not_found = False
 
             lft_position += 1
@@ -298,7 +327,7 @@ class ScarSearch:
 
         return lft_template, rt_template
 
-    def raw_data_output(self, index_name, read_results_list):
+    def raw_data_output(self, index_name, read_results_list, target_region):
         """
         Handle formatting and writing raw data.
         :param index_name:
@@ -324,34 +353,36 @@ class ScarSearch:
                 continue
 
             results_outstring += "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n" \
-                .format(lft_del, rt_del, del_size, microhomology, total_ins, ins_size, consensus, self.target_region)
+                .format(lft_del, rt_del, del_size, microhomology, total_ins, ins_size, consensus, target_region)
 
         results_file.write(results_outstring)
         results_file.close()
 
-    def cutsite_search(self):
+    def cutsite_search(self, target_name, sgrna, target_region):
         """
         Find the sgRNA cutsite on the gapped genomic DNA.
-        :param expected_cut:
+        :param target_name:
         """
 
         lft_position = 0
-        rt_position = len(self.sgrna)
-        upper_limit = len(self.target_region)
-        sgrna = self.sgrna
+        rt_position = len(sgrna)
+        upper_limit = len(target_region)
+        working_sgrna = sgrna
         rcomp_sgrna = False
-        if self.target_dict["Rosa26a"][5] == 'YES':
-            sgrna = Sequence_Magic.rcomp(self.sgrna)
+        if self.target_dict[target_name][5] == 'YES':
+            working_sgrna = Sequence_Magic.rcomp(sgrna)
             rcomp_sgrna = True
 
         cutsite_found = False
         while not cutsite_found and rt_position < upper_limit:
-            if self.target_region[lft_position:rt_position] == sgrna:
+            if target_region[lft_position:rt_position] == working_sgrna:
                 cutsite_found = True
+                l = lft_position
+                r = rt_position
                 if rcomp_sgrna:
                     self.cutsite = lft_position+3
                 else:
-                    self.cutsite = rt_position-4
+                    self.cutsite = rt_position-3
 
             lft_position += 1
             rt_position += 1
@@ -369,7 +400,8 @@ class ScarSearch:
         """
 
         # Create gapped alignment file in FASTA format using MUSCLE
-        cmd = ['muscle', "-quiet", "-maxiters", "1", "-diags"]
+        # cmd = ['muscle', "-quiet", "-maxiters", "1", "-diags"]
+        cmd = ['muscle', "-quiet", "-refinewindow", "10"]
         muscle = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
 
         output, err = muscle.communicate(input=fasta_data)
@@ -380,6 +412,7 @@ class ScarSearch:
         first_line = True
         gapped_alignment_dict = collections.defaultdict(str)
         key = ""
+        # Tool_Box.debug_messenger(output)
         list_output = list(output.splitlines())
         consensus_seq = ""
 
@@ -535,15 +568,15 @@ class DataProcessing:
         # My solution for passing key:value groups to through the multiprocessor.  Largest value group goes first.
         data_list = []
         for key in sorted(self.sequence_dict, key=lambda k: len(self.sequence_dict[k]), reverse=True):
-            data_list.append((key, self.sequence_dict[key]))
+            data_list.append([self.log, self.args, self.target_dict, self.index_dict, True, key, self.sequence_dict[key]])
 
         # Not sure if clearing this is really necessary but it is not used again so why keep the RAM tied up.
         self.sequence_dict.clear()
 
         # Initialize the class for doing the search.  Copies of this initialized class are passed to each job.
-        scar_search = ScarSearch(self.log, self.args, self.target_dict, fastq=True)
+        # scar_search = ScarSearch(self.log, self.args, self.target_dict, self.index_dict, fastq=True)
 
-        self.data_output(p.starmap(scar_search.data_processing, zip(data_list)))
+        self.data_output(p.starmap(ScarSearch, data_list))
 
         self.log.info("Main Loop Finished")
 
@@ -581,6 +614,7 @@ class DataProcessing:
 
             sample_name = sample[1]
             sample_replicate = sample[2]
+            target_name = sample[4]
 
             if self.args.Platform == "Illumina":
                 self.log.error("The Illumina --Platform method is not yet implemented.")
@@ -600,7 +634,7 @@ class DataProcessing:
 
                 index_dict[index_name] = \
                     [Sequence_Magic.rcomp(right_index_sequence.upper()), right_index_len, left_index_sequence.upper(),
-                     left_index_len, index_name, sample_name, sample_replicate]
+                     left_index_len, index_name, sample_name, sample_replicate, target_name]
 
             else:
                 self.log.error("Only 'Illumina' or 'Ramsden' --Platform methods allowed.")
@@ -726,31 +760,45 @@ class DataProcessing:
         filters; [2] reads with a left junction; [3] reads with a right junction; [4] reads with an insertion;
         [5] reads with microhomology; [6] reads with no identifiable cut; [7] filtered reads [8] scar type list.
         '''
+
         for data_list in summary_data_list:
-            index_name = data_list[0]
+            index_name = data_list.summary_data[0]
             sample_name = self.index_dict[index_name][5]
             sample_replicate = self.index_dict[index_name][6]
             library_read_count = self.read_count_dict[index_name]
             fraction_all_reads = library_read_count/self.read_count
-            passing_filters = data_list[1]
+            passing_filters = data_list.summary_data[1]
             fraction_passing = passing_filters/library_read_count
-            left_del = data_list[2]
-            right_del = data_list[3]
-            total_ins = data_list[4]
-            microhomology = data_list[5]
-            cut = passing_filters-data_list[6]
-            cut_fraction = cut/passing_filters
-            microhomology_fraction = microhomology/cut
-            filtered = data_list[7]
-            tmej = data_list[8][0]
-            tmej_fraction = tmej/cut
-            nhej = data_list[8][1]
-            nhej_fraction = nhej/cut
-            non_microhomology_del = data_list[8][4]
-            non_mh_del_fraction = non_microhomology_del/cut
-            large_ins = data_list[8][2]
-            large_ins_fraction = large_ins/cut
-            other_scar = data_list[8][3]
+            left_del = data_list.summary_data[2]
+            right_del = data_list.summary_data[3]
+            total_ins = data_list.summary_data[4]
+            microhomology = data_list.summary_data[5]
+            cut = passing_filters-data_list.summary_data[6]
+
+            try:
+                cut_fraction = cut/passing_filters
+            except ZeroDivisionError:
+                cut_fraction = 'nan'
+
+            filtered = data_list.summary_data[7]
+            tmej = data_list.summary_data[8][0]
+            nhej = data_list.summary_data[8][1]
+            non_microhomology_del = data_list.summary_data[8][4]
+            large_ins = data_list.summary_data[8][2]
+            other_scar = data_list.summary_data[8][3]
+
+            if cut == 0:
+                microhomology_fraction = 'nan'
+                non_mh_del_fraction = 'nan'
+                large_ins_fraction = 'nan'
+                nhej_fraction = 'nan'
+                tmej_fraction = 'nan'
+            else:
+                microhomology_fraction = microhomology / cut
+                non_mh_del_fraction = non_microhomology_del / cut
+                large_ins_fraction = large_ins / cut
+                nhej_fraction = nhej / cut
+                tmej_fraction = tmej / cut
 
             summary_outstring += \
                 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n"\
