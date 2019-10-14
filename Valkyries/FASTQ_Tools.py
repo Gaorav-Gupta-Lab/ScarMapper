@@ -1,4 +1,16 @@
 """
+FASTQ_Tools.py v0.17.6
+    June 9, 2019
+    Dennis A. Simpson
+    The trim to remove HaloPLEX false positives needed to be <=100 nucleotides not <100.
+FASTQ_Tools.py v0.17.5
+    May 19, 2019
+    Dennis A. Simpson
+    Some refactoring and code clean up based on pylint.  Still contains the dead FASTQ Quality class.
+FASTQ_Tools.py v0.17.2
+    March 31, 2019
+    Dennis A. Simpson
+    Added some logic for additional trimming of HaloPLEX libraries.  This logic needs to be exposed to the user.
 FASTQ_Tools.py v0.17.1
     May 24, 2018
     Dennis A. Simpson
@@ -17,26 +29,25 @@ FASTQ_Tools.py v0.1.0
     File renamed and code refactored.  Uses generators now.  Major performance gain.
 
 @author: Dennis A. Simpson
-         University of North Carolina at Chapel Hill
-         Chapel Hill, NC  27599
+         RTP Genomics
+         Chapel Hill, NC  27517
 @copyright: 2019
 """
 import pathlib
 import gzip
 import ntpath
-import magic
 import itertools
 from operator import add
+import collections
+import time
 import natsort
 import pathos
-import Valkyries.Tool_Box as Tool_Box
-import Valkyries.Sequence_Magic as Sequence_Magic
 import Levenshtein
-import time
-import collections
+import magic
+import Valkyries.Tool_Box as Tool_Box
 
 __author__ = 'Dennis A. Simpson'
-__version__ = "0.17.1"
+__version__ = "0.17.7"
 
 
 class FastqFile:
@@ -51,7 +62,7 @@ class FastqFile:
             log.warning("FASTQ file parameter missing from options file. Correct error and try again.")
             raise SystemExit(1)
 
-        elif not pathlib.Path(input_file).is_file():
+        if not pathlib.Path(input_file).is_file():
             log.warning("FASTQ file {0} not found.  Correct error and run again.".format(input_file))
             raise SystemExit(1)
 
@@ -78,26 +89,29 @@ class FastqFile:
         return fq_file
 
 
-class FastqSplitter(object):
+class FastqSplitter:
     """
     This class will chop up a FASTQ file or a pair of FASTQ files for use in the aligner or quality analysis.
     The class name here no longer reflects the primary function of this class.  The file split function is not needed
     when using the parallel version of the aligners.
     """
 
-    def __init__(self, args, log, fastq1, fastq2, fastq3=None, paired_end=False):
+    def __init__(self, args, log, fastq1, fastq2, index1=None, index2=None, paired_end=False):
         self.log = log
         self.args = args
         self.fastq1_file = fastq1
         self.fastq2_file = fastq2
-        self.fastq3_file = fastq3
+        self.index1_file = index1
+        self.index2_file = index2
         self.paired_end = paired_end
-        self.indices = Tool_Box.FileParser.indices(log, args.Index_File)
         self.read_count = None
-        self.no_left_anchor_count = 0
-        self.no_right_anchor_count = 0
 
     def new_file_size(self, line_count):
+        """
+
+        :param line_count:
+        :return:
+        """
         # Adjust the number of lines to be written in each file.
         self.log.info("Begin computing file size of new FASTQ files.")
         self.read_count = line_count/4
@@ -153,8 +167,8 @@ class FastqSplitter(object):
                 # This generator is returning actual reads not lines.
                 fastq1_read = next(self.fastq1_file.seq_read())
                 fastq2_read = next(self.fastq2_file.seq_read())
-                if self.fastq3_file is not None:
-                    fastq3_read = next(self.fastq3_file.seq_read())
+                if self.index1_file is not None:
+                    fastq3_read = next(self.index1_file.seq_read())
             except StopIteration:
                 read_count += 1
                 continue
@@ -198,12 +212,12 @@ class FastqSplitter(object):
             # fastq2_read.name = fastq2_read.name.replace(" ", ":")
 
             # Add the UMT's to the header.
-            if eval(self.args.HaloPLEX):
+            if self.args.HaloPLEX:
                 umi = fastq3_read.seq
                 header1 = "{0}|{1}:{2}".format(fastq1_read.name.split(":")[-1], umi, fastq1_read.name)
                 header2 = "{0}|{1}:{2}".format(fastq2_read.name.split(":")[-1], umi, fastq2_read.name)
 
-            elif eval(self.args.ThruPLEX):
+            elif self.args.ThruPLEX:
                 # header1 = "{0}|{1}".format(fastq1_read.name.split(":")[-1], fastq1_read.name)
                 umt1 = fastq1_read.seq[:6]
                 umt2 = fastq2_read.seq[:6]
@@ -238,13 +252,12 @@ class FastqSplitter(object):
 
     def file_writer(self):
         """
-        Process FASTQ file(s) and write new version(s) suitable for aligners.  Return file name.  This is designed for
+        Process FASTQ file(s) and write new version(s) suitable for aligners.  Return file name.
         :return:
         """
 
         self.log.info("Begin writing temporary FASTQ files.")
         current_read_count = 0
-        total_bad = 0
         file1 = "{0}{1}_R1_processed.fastq".format(self.args.Working_Folder, self.args.Job_Name)
         file2 = "{0}{1}_R2_processed.fastq".format(self.args.Working_Folder, self.args.Job_Name)
         temp_file1 = Writer(self.log, file1)
@@ -260,8 +273,10 @@ class FastqSplitter(object):
             try:
                 fastq1_read = next(self.fastq1_file.seq_read())
                 fastq2_read = next(self.fastq2_file.seq_read())
-                if self.fastq3_file is not None:
-                    fastq3_read = next(self.fastq3_file.seq_read())
+                if self.index1_file is not None:
+                    index1_read = next(self.index1_file.seq_read())
+                if self.index2_file is not None:
+                    index2_read = next(self.index2_file.seq_read())
             except StopIteration:
                 eof = True
                 continue
@@ -269,69 +284,50 @@ class FastqSplitter(object):
             current_read_count += 1
 
             # Apply Filters
-            min_length = int(self.args.Minimum_Length) + int(self.args.Trim5) + int(self.args.Trim3)
+            trim_5 = int(self.args.Trim5)
+            trim_3 = int(self.args.Trim3)
+            min_length = int(self.args.Minimum_Length) + trim_5 + trim_3
+
+            # Filter reads based on length and number of N's.
             if (len(fastq1_read.seq) < min_length or len(fastq2_read.seq) < min_length
                     or fastq1_read.seq.count("N") / len(fastq1_read.seq) >= float(self.args.N_Limit)
                     or fastq2_read.seq.count("N")/len(fastq2_read.seq) >= float(self.args.N_Limit)):
                 continue
 
-            # fastq1_n_frac = fastq1_read.seq.count("N")/len(fastq1_read.seq)
-            # fastq2_n_frac = fastq2_read.seq.count("N")/len(fastq2_read.seq)
-
             # Add the UMT's to the header.
-            if eval(self.args.HaloPLEX):
-                umi = fastq3_read.seq
-                header1 = "{0}|{1}:{2}".format(umi, umi, fastq1_read.name)
-                header2 = "{0}|{1}:{2}".format(umi, umi, fastq2_read.name)
+            if self.args.HaloPLEX:
+                header1 = "{0}|{0}:{1}".format(index1_read.seq, fastq1_read.name)
+                header2 = "{0}|{0}:{1}".format(index1_read.seq, fastq2_read.name)
 
-            elif eval(self.args.ThruPLEX):
+                # Fixme: This needs to be exposed to the user.
+                # Short HaloPLEX reads have issues.  Found that reads <= 100 all show a 3' -1 or -2 error
+                if len(fastq1_read.seq) <= 100:
+                    read_trim(fastq1_read, trim5=0, trim3=3)
+                if len(fastq2_read.seq) <= 100:
+                    read_trim(fastq2_read, trim5=0, trim3=3)
+
+            elif self.args.ThruPLEX:
                 # header1 = "{0}|{1}".format(fastq1_read.name.split(":")[-1], fastq1_read.name)
                 umt1 = fastq1_read.seq[:6]
                 umt2 = fastq2_read.seq[:6]
                 header1 = "{0}|{1}:{2}".format(umt1, umt2, fastq1_read.name)
                 header2 = "{0}|{1}:{2}".format(umt1, umt2, fastq2_read.name)
-                read_trim(fastq1_read, len(umt1))
-                read_trim(fastq2_read, len(umt2))
+                read_trim(fastq1_read, trim5=len(umt1), trim3=0)
+                read_trim(fastq2_read, trim5=len(umt2), trim3=0)
 
-            elif eval(self.args.ScarMapper):
-                if self.args.ReverseComp == "Anchor1":
-                    anchor1 = Sequence_Magic.rcomp(self.args.Anchor1)
-                    anchor2 = self.args.Anchor2
-                elif self.args.ReverseComp == "Anchor2":
-                    anchor1 = self.args.Anchor1
-                    anchor2 = Sequence_Magic.rcomp(self.args.Anchor2)
-                else:
-                    self.log.error("--ReverseComp parameter must be Anchor1 or Anchor2")
+            elif self.args.FASTQ_PreProcess:
+                # The indices are after the last ":" in the header.
+                header1 = "{}:{}+{}".format(fastq1_read.name, index1_read.seq, index2_read.seq)
+                header2 = "{}:{}+{}".format(fastq2_read.name, index1_read.seq, index2_read.seq)
 
-                anchor1_position, anchor1_found = self._anchor_search(anchor1, fastq1_read)
-
-                if anchor1_found:
-                    umt1 = fastq1_read.seq[:anchor1_position]
-                else:
-                    self.no_left_anchor_count += 1
-
-                anchor2_position, anchor2_found = self._anchor_search(anchor2, fastq2_read)
-                if anchor2_found:
-                    umt2 = fastq1_read.seq[:anchor2_position]
-                else:
-                    self.no_right_anchor_count += 1
-
-                if anchor1_found and anchor2_found:
-                    header1 = "{0}|{1}:{2}".format(umt1, umt2, fastq1_read.name)
-                    header2 = "{0}|{1}:{2}".format(umt1, umt2, fastq2_read.name)
-                    read_trim(fastq1_read, len(umt1))
-                    read_trim(fastq2_read, len(umt2))
-                else:
-                    total_bad += 1
-                    continue
             else:
                 self.log.error("Only HaloPLEX or ThruPLEX currently enabled.")
                 raise SystemExit(1)
 
             # Trim sequences from ends if needed.
-            if int(self.args.Trim5) > 0 or int(self.args.Trim3) > 0:
-                read_trim(fastq1_read, int(self.args.Trim5), int(self.args.Trim3))
-                read_trim(fastq2_read, int(self.args.Trim5), int(self.args.Trim3))
+            if trim_5 > 0 or trim_3 > 0:
+                read_trim(fastq1_read, trim_5, trim_3)
+                read_trim(fastq2_read, trim_5, trim_3)
 
             fastq1_read.name = header1
             fastq2_read.name = header2
@@ -348,10 +344,10 @@ class FastqSplitter(object):
                 fastq2_list.clear()
 
         # Cleans up any writes still needed and closes files
-        if len(fastq1_list) > 0:
+        if fastq1_list:
             temp_file1.write(fastq1_list)
             fastq1_list.clear()
-        if len(fastq2_list) > 0:
+        if fastq2_list:
             temp_file2.write(fastq2_list)
             fastq2_list.clear()
         if temp_file1:
@@ -360,33 +356,10 @@ class FastqSplitter(object):
             temp_file2.close()
 
         self.log.info("Modified FASTQ file(s) written")
-        self.log.debug("Total Reads: {}; Total Skipped: {}; Left Bad: {}; Right Bad: {}"
-                       .format(current_read_count, total_bad, self.no_left_anchor_count, self.no_right_anchor_count))
-
+        if self.args.FASTQ_PreProcess:
+            Tool_Box.compress_files(file1, self.log)
+            Tool_Box.compress_files(file2, self.log)
         return file1, file2
-
-    def _anchor_search(self, anchor, fastq_read):
-        anchor_not_found = True
-        start_pos = 0
-        position_dict = collections.defaultdict(int)
-        while anchor_not_found:
-            mismatch_index = Sequence_Magic.match_maker(anchor, fastq_read.seq[start_pos:][:len(anchor)])
-
-            # If we do not find the anchor sequence exit the loop and go to the next read.
-            if start_pos > len(anchor)+2:
-                anchor_not_found = False
-                break
-            elif mismatch_index <= int(self.args.AnchorMismatch):
-                if start_pos == 0:
-                    return 0, True
-
-                position_dict[mismatch_index] = start_pos
-
-            start_pos += 1
-        if len(position_dict) > 0:
-            return position_dict[min(list(position_dict.keys()))], True
-        else:
-            return 0, False
 
 
 class FastqQuality:
@@ -410,7 +383,6 @@ class FastqQuality:
     def module_director(self, splitter_data):
         """
         Parallel job coordination and data processing call.
-        :return:
         """
 
         self.log.info("Spawning {0} parallel jobs for quality analysis of {1} temporary FASTQ files."
@@ -423,7 +395,6 @@ class FastqQuality:
         dict_list += p.starmap(self.quality_check, zip(itertools.repeat(data_bundle), splitter_data.fastq_file_list))
 
         # Data captured from the multiprocessing pool in this manner is messy.  This sorts it.
-        # anchor_dict = Tool_Box.VivifiedDictionary()
         anchor_dict = collections.defaultdict(lambda: collections.defaultdict(list))
         umt_counts_dict = collections.defaultdict(lambda: collections.defaultdict(int))
 
@@ -431,7 +402,7 @@ class FastqQuality:
             for dd in data_dicts:
                 for index_key in dd:
                     for key2 in dd[index_key]:
-                        if "R1" == key2 or key2 == "R2":
+                        if key2 in ("R1", "R2"):
                             # Total the anchor seq lengths.
                             r2_list = anchor_dict[index_key]["R2"]
                             r1_list = anchor_dict[index_key]["R1"]
@@ -456,12 +427,9 @@ class FastqQuality:
 
         self.data_processing()
 
-        return
-
     def data_processing(self):
         """
         Gather the data from all the dictionaries and format it for the output files.
-        :return:
         """
 
         # Build the header string and write it to the output file.
@@ -489,8 +457,6 @@ class FastqQuality:
 
         self.anchor_dict.clear()
 
-        return
-
     @staticmethod
     def quality_check(data_bundle, fastq_files):
         """
@@ -508,7 +474,7 @@ class FastqQuality:
         fastq1 = FASTQ_Reader(fastq_files[0])
         fastq2 = FASTQ_Reader(fastq_files[1])
 
-        umt_dict = Tool_Box.VivifiedDictionary()
+        umt_dict = collections.defaultdict(lambda: collections.defaultdict(int))
         anchor_dict = Tool_Box.VivifiedDictionary()
         read_count = 0
 
@@ -539,11 +505,11 @@ class FastqQuality:
                     if index[0] in anchor_dict and index_match < 2:
                         anchor_dict[index[0]]["R1"][match1] += 1
                         anchor_dict[index[0]]["R2"][match2] += 1
-
-                        if umt in umt_dict[index[0]]:
-                            umt_dict[index[0]][umt] += 1
-                        else:
-                            umt_dict[index[0]][umt] = 1
+                        umt_dict[index[0]][umt] += 1
+                        # if umt in umt_dict[index[0]]:
+                        #     umt_dict[index[0]][umt] += 1
+                        # else:
+                        #     umt_dict[index[0]][umt] = 1
 
                     elif index_match < 2:
                         anchor_dict[index[0]]["R1"] = [0] * len(file1_anchor_seq)
@@ -571,10 +537,11 @@ class Writer:
 
     def lethal_write(self, read):
         """
-        This writer is for writing single reads to a new FASTQ file.
+        This is potentially dead code.
         :param read:
         :return:
         """
+        # ToDo: Potentially dead code block.
 
         outstring = ""
 
@@ -591,7 +558,7 @@ class Writer:
 
     def write(self, read_list):
         """
-        This writer is for writing large blocks of FASTQ data to a file, NOT single reads.
+        Writes our new FASTQ file.
         :param read_list:
         :return:
         """
@@ -611,11 +578,18 @@ class Writer:
         return True
 
     def close(self):
+        """
+        Closes FASTQ file
+        :return:
+        """
         self.file.close()
         return True
 
 
 class FASTQ_Reader:
+    """
+    Main class that creates FASTQ reads
+    """
     __slots__ = ['input_file', 'log', 'name', 'seq', 'index', 'qual', 'read_block', 'file_name', 'fq_file']
 
     def __init__(self, input_file, log=None):
@@ -637,12 +611,15 @@ class FASTQ_Reader:
         self.fq_file = self.__fastq_file()
 
     def __fastq_file(self):
-
+        """
+        Create FASTQ file object.
+        :return:
+        """
         if len(self.input_file) < 3:
             self.log.warning("FASTQ file parameter missing from options file. Correct error and try again.")
             raise SystemExit(1)
 
-        elif not pathlib.Path(self.input_file).is_file():
+        if not pathlib.Path(self.input_file).is_file():
             self.log.warning("FASTQ file {0} not found.  Correct error and run again.".format(self.input_file))
             raise SystemExit(1)
 
@@ -661,17 +638,25 @@ class FASTQ_Reader:
         return fq_file
 
     def line_reader(self):
+        """
+        Part of generator for FASTQ reads
+        """
         for line in self.fq_file:
             while True:
                 yield line
 
     def seq_read(self):
-
+        """
+        Generator reads FASTQ file creating read block.
+        """
         read_block = []
+        count = 0
         eof = False
         try:
-            for i in range(4):
+            # for i in range(4):
+            while count < 4:
                 read_block.append(next(FASTQ_Reader.line_reader(self)))
+                count += 1
         except StopIteration:
             eof = True
 
@@ -691,17 +676,24 @@ class FASTQ_Reader:
 
         # I am using this as my EOF.  Not so sure the code ever reaches this.
         self.name = None
-        return
 
 
-def read_trim(fastq_read, trim5=None, trim3=None):
-
-    if trim5 and trim3:
-        fastq_read.seq = fastq_read.seq[trim5:-trim3]
-        fastq_read.qual = fastq_read.qual[trim5:-trim3]
-    elif trim5:
-        fastq_read.seq = fastq_read.seq[trim5:]
-        fastq_read.qual = fastq_read.qual[trim5:]
-    elif trim3:
-        fastq_read.seq = fastq_read.seq[:-trim3]
-        fastq_read.qual = fastq_read.qual[:-trim3]
+def read_trim(fastq_read, trim5, trim3):
+    """
+    Provide additional trimming to reads beyond the adaptor trim.
+    :param fastq_read:
+    :param trim5:
+    :param trim3:
+    """
+    fastq_read.seq = fastq_read.seq[trim5:-trim3]
+    fastq_read.qual = fastq_read.qual[trim5:-trim3]
+    #
+    # if trim5 and trim3:
+    #     fastq_read.seq = fastq_read.seq[trim5:-trim3]
+    #     fastq_read.qual = fastq_read.qual[trim5:-trim3]
+    # elif trim5:
+    #     fastq_read.seq = fastq_read.seq[trim5:]
+    #     fastq_read.qual = fastq_read.qual[trim5:]
+    # elif trim3:
+    #     fastq_read.seq = fastq_read.seq[:-trim3]
+    #     fastq_read.qual = fastq_read.qual[:-trim3]

@@ -19,15 +19,13 @@ from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FAS
 
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.5.0'
+__version__ = '0.7.0'
 __package__ = 'ScarMapper'
 
 
-def atropos_trim(args, log, fq1, fq2, method):
+def atropos_trim(args, log, method):
     """
     Trim adapters from reads with Atropos.  This creates the Atropos config file and runs Atropos.
-    :param fq1:
-    :param fq2:
     :param args:
     :param log:
     :param method:
@@ -54,7 +52,7 @@ def atropos_trim(args, log, fq1, fq2, method):
         "-pe1 {7}\n-pe2 {8}\n{14}\n{9}\n--error-rate {10}\n--times 3\n--quality-cutoff 20\n"\
         "--stats bot\n--read-queue-size {12}\n--result-queue-size {13}\n--report-file {11}\n"\
         .format(args.Atropos_Aligner, args.Spawn, additional_adapters, args.Anchored_Adapters_5p,
-                args.Anchored_Adapters_3p, fastq1_trimmed, fastq2_trimmed, fq1, fq2, nextseq_trim,
+                args.Anchored_Adapters_3p, fastq1_trimmed, fastq2_trimmed, args.FASTQ1, args.FASTQ2, nextseq_trim,
                 args.Adapter_Mismatch_Fraction, trim_report, args.Read_Queue_Size, args.Result_Queue_Size, op_order)
     config_file = open("{}{}_Atropos_Config.txt".format(args.Working_Folder, args.Job_Name), "w")
     config_file.write(config_block)
@@ -96,12 +94,14 @@ def main(command_line_args=None):
 
     if args.IndelProcessing:
         log.info("Sending FASTQ files to FASTQ preprocessor.")
-
-        fq1 = FASTQ_Tools.FASTQ_Reader(args.FASTQ1, log)
-        fq2 = FASTQ_Tools.FASTQ_Reader(args.FASTQ2, log)
+        fastq_file1 = args.FASTQ1
+        fastq_file2 = args.FASTQ2
 
         if args.Atropos_Trim:
-            fq1, fq2 = atropos_trim(args, log, fq1, fq2, "ScarMapper")
+            fastq_file1, fastq_file2 = atropos_trim(args, log, "ScarMapper")
+
+        fq1 = FASTQ_Tools.FASTQ_Reader(fastq_file1, log)
+        fq2 = FASTQ_Tools.FASTQ_Reader(fastq_file2, log)
 
         targetmapper = Target_Mapper.TargetMapper(log, args)
         indel_processing = Indel_Processing.DataProcessing(log, args, run_start, fq1, fq2, targetmapper.targets)
