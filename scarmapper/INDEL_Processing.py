@@ -8,6 +8,7 @@
 import collections
 import datetime
 import itertools
+import os
 import subprocess
 import time
 import pathos
@@ -16,7 +17,7 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.7.0'
+__version__ = '0.8.0'
 __package__ = 'ScarMapper'
 
 
@@ -65,7 +66,6 @@ class ScarSearch:
     def data_processing(self):
         """
         Generate the consensus sequence and find indels.  Write the frequency file.  Called by pathos pool
-        :param data_list:
         :return:
         """
 
@@ -78,7 +78,7 @@ class ScarSearch:
         right insertions, total insertions, microhomology, number filtered
         """
         target_name = self.index_dict[self.index_name][7]
-        self.summary_data = [self.index_name, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.summary_data = [self.index_name, 0, 0, 0, 0, 0, 0, 0, 0, target_name]
         junction_type_data = [0, 0, 0, 0, 0]
         read_results_list = []
         results_freq_dict = collections.defaultdict(list)
@@ -88,14 +88,13 @@ class ScarSearch:
         chrm = self.target_dict[target_name][1]
         sgrna = self.target_dict[target_name][4]
         target_region = refseq.fetch(chrm, start, stop)
-        self.cutsite_search(target_name, sgrna, target_region)
+        self.cutsite_search(target_name, sgrna, target_region, chrm, start, stop)
         self.window_mapping(target_region)
         loop_count = 0
         start_time = time.time()
         split_time = start_time
 
         for seq in self.sequence_list:
-
             loop_count += 1
 
             if loop_count % 5000 == 0:
@@ -108,6 +107,7 @@ class ScarSearch:
             if self.fastq:
                 # Generate a gapped simple consensus from the paired reads.
                 left_seq, right_seq = seq
+
                 # Muscle will not properly gap sequences with an overlap smaller than about 50 nucleotides.
                 # consensus_seq = \
                 #     self.gapped_aligner(">left\n{}\n>right\n{}\n"
@@ -192,6 +192,7 @@ class ScarSearch:
         """
         Format data and write frequency file.
 
+        :param target_region:
         :param index_name:
         :param results_freq_dict:
         :param junction_type_data:
@@ -254,7 +255,8 @@ class ScarSearch:
             elif ins_size >= 5:
                 junction_type_data[2] += key_count
                 lft_template, rt_template = \
-                    self.templated_insertion_search(insertion, template_lft_junction, template_rt_junction, target_name, target_region)
+                    self.templated_insertion_search(insertion, template_lft_junction, template_rt_junction, target_name,
+                                                    target_region)
 
             # Scars not part of the previous four
             else:
@@ -278,6 +280,7 @@ class ScarSearch:
     def templated_insertion_search(self, insertion, lft_target_junction, rt_target_junction, target_name, target_region):
         """
         Search for left and right templates for insertions.
+        :param target_region:
         :param insertion:
         :param lft_target_junction:
         :param rt_target_junction:
@@ -330,6 +333,7 @@ class ScarSearch:
     def raw_data_output(self, index_name, read_results_list, target_region):
         """
         Handle formatting and writing raw data.
+        :param target_region:
         :param index_name:
         :param read_results_list:
         """
@@ -358,9 +362,14 @@ class ScarSearch:
         results_file.write(results_outstring)
         results_file.close()
 
-    def cutsite_search(self, target_name, sgrna, target_region):
+    def cutsite_search(self, target_name, sgrna, target_region, chrm, start, stop):
         """
         Find the sgRNA cutsite on the gapped genomic DNA.
+        :param stop:
+        :param start:
+        :param chrm:
+        :param sgrna:
+        :param target_region:
         :param target_name:
         """
 
@@ -388,8 +397,9 @@ class ScarSearch:
             rt_position += 1
 
         if not cutsite_found:
-            self.log.error("sgRNA {} does not map to locus {}; chr{}:{}-{}.  Check --Target_File and try again.")
-            raise SystemExit(1)
+            self.log.error("sgRNA {} does not map to locus {}; chr{}:{}-{}.  Check --Target_File and try again."
+                           .format(sgrna, target_name, chrm, start, stop))
+            os._exit(1)
 
     def gapped_aligner(self, fasta_data):
         """
@@ -458,7 +468,6 @@ class DataProcessing:
         self.date_format = "%a %b %d %H:%M:%S %Y"
         self.run_start = run_start
         self.fastq_outfile_dict = None
-        self.fastq_data_dict = None
         self.target_dict = target_dict
         self.index_dict = self.dictionary_build()
         self.refseq = pysam.FastaFile(args.Ref_Seq)
@@ -480,16 +489,16 @@ class DataProcessing:
         start_time = time.time()
         split_time = time.time()
         fastq_file_name_list = []
-
+        fastq_data_dict = collections.defaultdict(lambda: collections.defaultdict(list))
         while not eof:
             # Debugging Code Block
             if self.args.Verbose == "DEBUG":
                 read_limit = 300000
                 if self.read_count > read_limit:
                     if self.args.Demultiplex:
-                        for index_name in self.fastq_data_dict:
-                            r1_data = self.fastq_data_dict[index_name]["R1"]
-                            r2_data = self.fastq_data_dict[index_name]["R2"]
+                        for index_name in fastq_data_dict:
+                            r1_data = fastq_data_dict[index_name]["R1"]
+                            r2_data = fastq_data_dict[index_name]["R2"]
                             r1, r2 = self.fastq_outfile_dict[index_name]
                             r1.write(r1_data)
                             r2.write(r2_data)
@@ -504,9 +513,9 @@ class DataProcessing:
 
             except StopIteration:
                 if self.args.Demultiplex:
-                    for index_name in self.fastq_data_dict:
-                        r1_data = self.fastq_data_dict[index_name]["R1"]
-                        r2_data = self.fastq_data_dict[index_name]["R2"]
+                    for index_name in fastq_data_dict:
+                        r1_data = fastq_data_dict[index_name]["R1"]
+                        r2_data = fastq_data_dict[index_name]["R2"]
                         r1, r2 = self.fastq_outfile_dict[index_name]
                         r1.write(r1_data)
                         r2.write(r2_data)
@@ -536,10 +545,22 @@ class DataProcessing:
                 self.index_matching(fastq1_read, fastq2_read)
 
             if match_found:
-                self.sequence_dict[index_name].append([left_seq, right_seq])
+                if self.args.Platform == "Illumina":
+                    if self.index_dict[index_name][7] == "AAVS1.1":
+                        self.sequence_dict[index_name].append([left_seq, right_seq])
+                    else:
+                        self.sequence_dict[index_name].append([right_seq, left_seq])
+
+                elif self.args.Platform == "Ramsden":
+                    self.sequence_dict[index_name].append([left_seq, right_seq])
+                else:
+                    self.log.error("--Platform {} not defined.  Edit parameter file and try again"
+                                   .format(self.args.Platform))
+                    raise SystemExit(1)
+
                 if self.args.Demultiplex:
-                    self.fastq_data_dict[index_name]["R1"].append(fastq1_read)
-                    self.fastq_data_dict[index_name]["R2"].append(fastq2_read)
+                    fastq_data_dict[index_name]["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
+                    fastq_data_dict[index_name]["R2"].append([fastq2_read.name, fastq2_read.seq, fastq2_read.qual])
                     fastq_file_name_list.append("{}{}_{}_R1.fastq"
                                                 .format(self.args.Working_Folder, self.args.Job_Name, index_name))
                     fastq_file_name_list.append("{}{}_{}_R2.fastq"
@@ -568,7 +589,8 @@ class DataProcessing:
         # My solution for passing key:value groups to through the multiprocessor.  Largest value group goes first.
         data_list = []
         for key in sorted(self.sequence_dict, key=lambda k: len(self.sequence_dict[k]), reverse=True):
-            data_list.append([self.log, self.args, self.target_dict, self.index_dict, True, key, self.sequence_dict[key]])
+            data_list.append([self.log, self.args, self.target_dict, self.index_dict, True, key,
+                              self.sequence_dict[key]])
 
         # Not sure if clearing this is really necessary but it is not used again so why keep the RAM tied up.
         self.sequence_dict.clear()
@@ -591,7 +613,6 @@ class DataProcessing:
         # If we are demultiplexing the input FASTQ then setup the output files and dataframe.
         if self.args.Demultiplex:
             self.fastq_outfile_dict = collections.defaultdict(list)
-            self.fastq_data_dict = collections.defaultdict(lambda: collections.defaultdict(list))
 
         master_index_dict = {}
         with open(self.args.Master_Index_File) as f:
@@ -617,8 +638,10 @@ class DataProcessing:
             target_name = sample[4]
 
             if self.args.Platform == "Illumina":
-                self.log.error("The Illumina --Platform method is not yet implemented.")
-                raise SystemExit(1)
+                left_index_sequence, right_index_sequence = master_index_dict[index_name]
+                index_dict[index_name] = \
+                    [right_index_sequence.upper(), 0, left_index_sequence.upper(), 0, index_name, sample_name,
+                     sample_replicate, target_name]
 
             elif self.args.Platform == "Ramsden":
                 # This is for the Ramsden indexing primers.
@@ -708,8 +731,14 @@ class DataProcessing:
             left_trim = self.index_dict[index_key][1]
             right_trim = self.index_dict[index_key][3]
 
-            left_match = Sequence_Magic.match_maker(left_index, fastq2_read.seq[:len(left_index)])
-            right_match = Sequence_Magic.match_maker(right_index, fastq1_read.seq[:len(right_index)])
+            if self.args.Platform == "Illumina":
+                # The indices are after the last ":" in the header.
+                index_query = "{}+{}".format(right_index, left_index)
+                right_match = left_match = Sequence_Magic.match_maker(index_query, fastq2_read.name.split(":")[-1])
+
+            elif self.args.Platform == "Ramsden":
+                left_match = Sequence_Magic.match_maker(left_index, fastq2_read.seq[:len(left_index)])
+                right_match = Sequence_Magic.match_maker(right_index, fastq1_read.seq[:len(right_index)])
 
             if index_key not in self.read_count_dict:
                 self.read_count_dict[index_key] = 0
@@ -749,7 +778,7 @@ class DataProcessing:
         summary_outstring = "ScarMapper {}\nStart: {}\nEnd: {}\nFASTQ1: {}\nFASTQ2: {}\nReads Analyzed: {}\n\n"\
             .format(__version__, self.run_start, run_stop, self.args.FASTQ1, self.args.FASTQ2, self.read_count, )
         summary_outstring += \
-            "Index Name\tSample Name\tSample Replicate\tTotal Found\tFraction Total\tPassing Filters\t" \
+            "Index Name\tSample Name\tSample Replicate\tTarget\tTotal Found\tFraction Total\tPassing Filters\t" \
             "Fraction Passing Filters\tNumber Filtered\t{}\tTMEJ\tNormalized TMEJ\tNHEJ\tNormalized NHEJ\t" \
             "Non-Microhomology Deletions\tNormalized Non-MH Del\tInsertion >=5 +/- Deletions\t" \
             "Normalized Insertion >=5+/- Deletions\tOther Scar Type\n"\
@@ -774,6 +803,7 @@ class DataProcessing:
             total_ins = data_list.summary_data[4]
             microhomology = data_list.summary_data[5]
             cut = passing_filters-data_list.summary_data[6]
+            target = data_list.summary_data[9]
 
             try:
                 cut_fraction = cut/passing_filters
@@ -801,8 +831,8 @@ class DataProcessing:
                 tmej_fraction = tmej / cut
 
             summary_outstring += \
-                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n"\
-                .format(index_name, sample_name, sample_replicate, library_read_count,
+                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n"\
+                .format(index_name, sample_name, sample_replicate, target, library_read_count,
                         fraction_all_reads, passing_filters, fraction_passing, filtered, cut, cut_fraction,
                         left_del, right_del, total_ins, microhomology, microhomology_fraction, tmej, tmej_fraction,
                         nhej, nhej_fraction, non_microhomology_del, non_mh_del_fraction, large_ins, large_ins_fraction,
