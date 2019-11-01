@@ -19,7 +19,7 @@ from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FAS
 
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.7.0'
+__version__ = '0.8.0'
 __package__ = 'ScarMapper'
 
 

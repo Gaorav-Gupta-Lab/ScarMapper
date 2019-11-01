@@ -565,12 +565,12 @@ class Writer:
         outstring = ""
         for read in read_list:
             try:
-                assert len(read.seq) == len(read.qual)
+                assert len(read[1]) == len(read[2])
             except AssertionError:
                 self.log.error("Sequence and quality scores of different lengths! Read Name {0}; Seq Length {1}; Qual "
-                               "Length {2}".format(read.name, len(read.seq), len(read.qual)))
+                               "Length {2}".format(read[0], len(read[1]), len(read[2])))
                 raise SystemExit(1)
-            outstring += "@{0}\n{1}\n{2}\n{3}\n".format(read.name, read.seq, read.index, read.qual)
+            outstring += "@{}\n{}\n+\n{}\n".format(read[0], read[1], read[2])
 
         self.file.write(outstring)
         read_list.clear()
@@ -678,22 +678,21 @@ class FASTQ_Reader:
         self.name = None
 
 
-def read_trim(fastq_read, trim5, trim3):
+def read_trim(fastq_read, trim5=None, trim3=None):
     """
     Provide additional trimming to reads beyond the adaptor trim.
     :param fastq_read:
     :param trim5:
     :param trim3:
     """
-    fastq_read.seq = fastq_read.seq[trim5:-trim3]
-    fastq_read.qual = fastq_read.qual[trim5:-trim3]
+    # fastq_read.seq = fastq_read.seq[trim5:-trim3]
+    # fastq_read.qual = fastq_read.qual[trim5:-trim3]
     #
-    # if trim5 and trim3:
-    #     fastq_read.seq = fastq_read.seq[trim5:-trim3]
-    #     fastq_read.qual = fastq_read.qual[trim5:-trim3]
-    # elif trim5:
-    #     fastq_read.seq = fastq_read.seq[trim5:]
-    #     fastq_read.qual = fastq_read.qual[trim5:]
-    # elif trim3:
-    #     fastq_read.seq = fastq_read.seq[:-trim3]
-    #     fastq_read.qual = fastq_read.qual[:-trim3]
+    if trim5 and trim3:
+        fastq_read.qual = fastq_read.qual[trim5:-trim3]
+    elif trim5:
+        fastq_read.seq = fastq_read.seq[trim5:]
+        fastq_read.qual = fastq_read.qual[trim5:]
+    elif trim3:
+        fastq_read.seq = fastq_read.seq[:-trim3]
+        fastq_read.qual = fastq_read.qual[:-trim3]
