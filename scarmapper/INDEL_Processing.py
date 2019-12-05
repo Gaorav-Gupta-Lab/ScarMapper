@@ -3,7 +3,7 @@
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599
-@copyright: 2019
+@copyright: 2020
 """
 import collections
 import datetime
@@ -17,7 +17,7 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.8.0'
+__version__ = '0.9.0'
 __package__ = 'ScarMapper'
 
 
@@ -41,55 +41,124 @@ class ScarSearch:
         self.right_target_windows = []
         self.data_processing()
 
-    def window_mapping(self, target_region):
+    def window_mapping(self):
         """
         Predetermine all the sliding window results for the target region.
         """
-        self.target_length = len(target_region)
-        self.lower_limit = int(0.15 * self.target_length)
-        self.upper_limit = int(0.85 * self.target_length)
+
+        self.target_length = len(self.target_region)
+
+        # Set upper and lower limit to be 5 nt from end of primers
+        self.lower_limit = 15
+        self.upper_limit = self.target_length-15
+
         lft_position = self.cutsite-10
         rt_position = self.cutsite
 
         while rt_position > self.lower_limit:
-            self.left_target_windows.append(target_region[lft_position:rt_position])
+            self.left_target_windows.append(self.target_region[lft_position:rt_position])
             lft_position -= 1
             rt_position -= 1
 
         lft_position = self.cutsite
         rt_position = self.cutsite+10
         while lft_position < self.upper_limit:
-            self.right_target_windows.append(target_region[lft_position:rt_position])
+            self.right_target_windows.append(self.target_region[lft_position:rt_position])
             lft_position += 1
             rt_position += 1
+
+    def trim_phasing(self, seq, left_read):
+        """
+        Trim and anchor the 5' end of each read to the appropriate end of target region
+        :param seq:
+        :param left_read:
+        :return:
+        """
+
+        right_position = 5
+        right_limit = 25
+        lft_position = 0
+        if left_read:
+            target_block = self.target_region[:5]
+        else:
+            target_block = Sequence_Magic.rcomp(self.target_region)[:5]
+        block_found = False
+
+        while right_position < right_limit and not block_found:
+            left_block = seq[lft_position:right_position]
+            if left_block == target_block:
+                seq = seq[lft_position:]
+                block_found = True
+            lft_position += 1
+            right_position += 1
+
+        return block_found, seq
+
+    @staticmethod
+    def simple_consensus(left_seq, right_seq):
+        """
+        Generate a simple consensus sequence from trimmed read 1 and read 2 sequences.
+        :param left_seq:
+        :param right_seq:
+        :return:
+        """
+        rt_seq = Sequence_Magic.rcomp(right_seq)
+        right_limit = len(right_seq) - 15
+        left_limit = 15
+        left_position = len(left_seq) - 10
+        right_position = len(left_seq)
+        consensus_seq = ""
+
+        while left_position > left_limit and not consensus_seq:
+            left_block = left_seq[left_position:right_position]
+            lft_position = 0
+            rt_position = 10
+
+            while rt_position < right_limit and not consensus_seq:
+                test_window = rt_seq[lft_position:rt_position]
+
+                if left_block == test_window:
+                    consensus_seq = left_seq + rt_seq[rt_position:]
+
+                lft_position += 1
+                rt_position += 1
+
+            left_position -= 1
+            right_position -= 1
+
+        return consensus_seq
 
     def data_processing(self):
         """
         Generate the consensus sequence and find indels.  Write the frequency file.  Called by pathos pool
+
         :return:
         """
-
-        # index_name = data_list[0]
-        # sequence_list = data_list[1]
 
         self.log.info("Begin Processing {}".format(self.index_name))
         """
         Summary List: index_name, total aberrant, left deletions, right deletions, total deletions, left insertions, 
-        right insertions, total insertions, microhomology, number filtered
+        right insertions, total insertions, microhomology, number filtered, target_name
         """
         target_name = self.index_dict[self.index_name][7]
-        self.summary_data = [self.index_name, 0, 0, 0, 0, 0, 0, 0, 0, target_name]
+        self.summary_data = [self.index_name, 0, 0, 0, 0, 0, [0, 0], [0, 0], 0, target_name, [0, 0, 0]]
         junction_type_data = [0, 0, 0, 0, 0]
         read_results_list = []
         results_freq_dict = collections.defaultdict(list)
         refseq = pysam.FastaFile(self.args.Ref_Seq)
-        start = int(self.target_dict[target_name][2])
+
+        try:
+            start = int(self.target_dict[target_name][2])
+        except IndexError:
+            self.log.error("Target file incorrectly formatted for {}".format(target_name))
+            return
+
         stop = int(self.target_dict[target_name][3])
         chrm = self.target_dict[target_name][1]
         sgrna = self.target_dict[target_name][4]
-        target_region = refseq.fetch(chrm, start, stop)
-        self.cutsite_search(target_name, sgrna, target_region, chrm, start, stop)
-        self.window_mapping(target_region)
+        self.target_region = refseq.fetch(chrm, start, stop)
+        self.cutsite_search(target_name, sgrna, chrm, start, stop)
+        self.window_mapping()
         loop_count = 0
         start_time = time.time()
         split_time = start_time
@@ -102,57 +171,64 @@ class ScarSearch:
                               .format(loop_count, len(self.sequence_list), self.index_name, time.time() - split_time,
                                       time.time() - start_time))
                 split_time = time.time()
-            consensus_seq = ""
-            block_found = False
+
             if self.fastq:
-                # Generate a gapped simple consensus from the paired reads.
                 left_seq, right_seq = seq
+
+                left_block_found, left_seq = self.trim_phasing(left_seq, left_read=True)
+                right_block_found, right_seq = self.trim_phasing(right_seq, left_read=False)
+
+                # Count sequences that don't have a 5' anchor.
+                if not left_block_found:
+                    self.summary_data[10][0] += 1
+
+                # Count sequences that don't have a 3' anchor.
+                if not right_block_found:
+                    self.summary_data[10][1] += 1
 
                 # Muscle will not properly gap sequences with an overlap smaller than about 50 nucleotides.
                 # consensus_seq = \
                 #     self.gapped_aligner(">left\n{}\n>right\n{}\n"
                 #                         .format(left_seq, Sequence_Magic.rcomp(right_seq)))
-                left_block = left_seq[-10:]
-                rt_seq = Sequence_Magic.rcomp(right_seq)
-                right_limit = len(right_seq)-20
-                lft_position = 0
-                right_position = 10
 
-                while right_position < right_limit and not block_found:
-                    test_window = rt_seq[lft_position:right_position]
-                    if left_block == test_window:
-                        consensus_seq = left_seq+rt_seq[right_position:]
-                        block_found = True
-                    lft_position += 1
-                    right_position += 1
+                consensus_seq = ''
+                if left_block_found and right_block_found:
+                    consensus_seq = self.simple_consensus(left_seq, right_seq)
+
             else:
                 consensus_seq = seq
 
-            if not block_found:
+            # Consensus sequence creation failed.
+            if not consensus_seq:
+                self.summary_data[7][1] += 1
                 continue
 
             # No need to attempt an analysis of bad data.
             if consensus_seq.count("N") / len(consensus_seq) > float(self.args.N_Limit):
-                self.summary_data[7] += 1
+                self.summary_data[7][0] += 1
                 continue
 
             # No need to analyze sequences that are too short.
             if len(consensus_seq) <= 1*self.lower_limit:
-                self.summary_data[7] += 1
+                self.summary_data[7][0] += 1
                 continue
 
             '''
             The summary_data list contains information for a single library.  [0] index name; [1] reads passing all 
             filters; [2] reads with a left junction; [3] reads with a right junction; [4] reads with an insertion;
-            [5] reads with microhomology; [6] reads with no identifiable cut; [7] filtered reads; [8] junction_type_data
+            [5] reads with microhomology; [6] reads with no identifiable cut; [7] filtered reads; [8] junction_type_data;
+            [9] List; [5, 3' unanchorable ends, bad insertions]
 
-            The junction_type_data list contains the repair type category counts.  [0] TMEJ, del > 3 and 
-            mcirohomology > 1; [1] NHEJ, del <=3 and Ins < 5 or microhomology <= 1 and del > 3; [2] insertions >= 5 
-            [3] Junctions with scars not represented by the other categories..
+            The junction_type_data list contains the repair type category counts.  [0] TMEJ, del_size >= 4 and 
+            microhomology_size >= 2; [1] NHEJ, del_size < 4 and ins_size < 5; [2] insertions >= 5 
+            [3] Junctions with scars not represented by the other categories; [4] Non-MH Deletions, del_size >= 4 and 
+            microhomology_size < 2 and ins_size < 5
             '''
+            # count reads that pass the read filters
+            self.summary_data[1] += 1
 
             sub_list, self.summary_data = \
-                SlidingWindow.sliding_window(consensus_seq, target_region, self.cutsite, self.target_length,
+                SlidingWindow.sliding_window(consensus_seq, self.target_region, self.cutsite, self.target_length,
                                              self.lower_limit, self.upper_limit, self.summary_data,
                                              self.left_target_windows, self.right_target_windows)
 
@@ -173,26 +249,21 @@ class ScarSearch:
             else:
                 results_freq_dict[freq_key] = [1, sub_list]
 
-        # Get the number of unmodified reads for library and remove the key from dictionary.
-        no_cut_list = results_freq_dict.pop("|||", [0])
-        self.summary_data[6] = no_cut_list[0]
-
         self.log.info("Finished Processing {}".format(self.index_name))
 
         # Write frequency results file
-        self.frequency_output(self.index_name, results_freq_dict, junction_type_data, target_region)
+        self.frequency_output(self.index_name, results_freq_dict, junction_type_data)
 
         # Format and output raw data if user has so chosen.
         if self.args.OutputRawData:
-            self.raw_data_output(self.index_name, read_results_list, target_region)
+            self.raw_data_output(self.index_name, read_results_list)
 
         return self.summary_data
 
-    def frequency_output(self, index_name, results_freq_dict, junction_type_data, target_region):
+    def frequency_output(self, index_name, results_freq_dict, junction_type_data):
         """
         Format data and write frequency file.
 
-        :param target_region:
         :param index_name:
         :param results_freq_dict:
         :param junction_type_data:
@@ -201,19 +272,23 @@ class ScarSearch:
 
         target_name = self.index_dict[index_name][7]
         freq_results_outstring = \
-            "# Total\tFrequency\tLeft Deletions\tRight Deletions\tDeletion Size\tMicrohomology\tMicrohomology Size\t" \
-            "Insertion\tInsertion Size\tLeft Template\tRight Template\tConsensus Left Junction\t" \
+            "# Total\tFrequency\tScar Type\tLeft Deletions\tRight Deletions\tDeletion Size\tMicrohomology\t" \
+            "Microhomology Size\tInsertion\tInsertion Size\tLeft Template\tRight Template\tConsensus Left Junction\t" \
             "Consensus Right Junction\tTarget Left Junction\tTarget Right Junction\tConsensus\tTarget Region\n"
 
         for freq_key in results_freq_dict:
             key_count = results_freq_dict[freq_key][0]
-            key_frequency = key_count / (self.summary_data[1] - self.summary_data[6])
+
+            try:
+                key_frequency = key_count / (self.summary_data[1] - self.summary_data[6][1])
+            except ZeroDivisionError:
+                key_frequency = 0
+
             lft_del = len(results_freq_dict[freq_key][1][0])
             rt_del = len(results_freq_dict[freq_key][1][1])
             insertion = results_freq_dict[freq_key][1][2]
             ins_size = len(insertion)
             consensus = results_freq_dict[freq_key][1][4]
-            # target_region = self.target_region
             microhomology = results_freq_dict[freq_key][1][3]
             microhomology_size = len(microhomology)
             del_size = lft_del + rt_del + microhomology_size
@@ -223,6 +298,8 @@ class ScarSearch:
             template_rt_junction = results_freq_dict[freq_key][1][8]
             lft_template = ""
             rt_template = ""
+            target_sequence = self.target_region
+            scar_type = "Other"
 
             # If sgRNA is from 3' strand we need to swap labels and reverse compliment sequences.
             if self.target_dict[target_name][5] == "YES":
@@ -231,41 +308,44 @@ class ScarSearch:
                 microhomology = Sequence_Magic.rcomp(microhomology)
                 insertion = Sequence_Magic.rcomp(insertion)
                 consensus = Sequence_Magic.rcomp(consensus)
-                target_region = Sequence_Magic.rcomp(target_region)
+                target_sequence = Sequence_Magic.rcomp(self.target_region)
                 tmp_con_lft = consensus_lft_junction
                 tmp_target_lft = template_lft_junction
                 consensus_lft_junction = len(consensus)-consensus_rt_junction
                 consensus_rt_junction = len(consensus)-tmp_con_lft
-                template_lft_junction = len(target_region)-template_rt_junction
-                template_rt_junction = len(target_region)-tmp_target_lft
+                template_lft_junction = len(self.target_region)-template_rt_junction
+                template_rt_junction = len(self.target_region)-tmp_target_lft
 
             # TMEJ counts
             if del_size >= 4 and microhomology_size >= 2:
                 junction_type_data[0] += key_count
+                scar_type = "TMEJ"
 
             # NHEJ counts
             elif del_size < 4 and ins_size < 5:
                 junction_type_data[1] += key_count
+                scar_type = "NHEJ"
 
             # Non-Microhomology Deletions
             elif del_size >= 4 and microhomology_size < 2 and ins_size < 5:
                 junction_type_data[4] += key_count
+                scar_type = "Non-MH Deletion"
 
             # Large Insertions with or without Deletions:
             elif ins_size >= 5:
                 junction_type_data[2] += key_count
+                scar_type = "Insertion"
                 lft_template, rt_template = \
-                    self.templated_insertion_search(insertion, template_lft_junction, template_rt_junction, target_name,
-                                                    target_region)
+                    self.templated_insertion_search(insertion, template_lft_junction, template_rt_junction, target_name)
 
             # Scars not part of the previous four
             else:
                 junction_type_data[3] += key_count
 
-            freq_results_outstring += "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n" \
-                .format(key_count, key_frequency, lft_del, rt_del, del_size, microhomology, microhomology_size,
+            freq_results_outstring += "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n" \
+                .format(key_count, key_frequency, scar_type, lft_del, rt_del, del_size, microhomology, microhomology_size,
                         insertion, ins_size, lft_template, rt_template, consensus_lft_junction, consensus_rt_junction,
-                        template_lft_junction, template_rt_junction, consensus, target_region)
+                        template_lft_junction, template_rt_junction, consensus, target_sequence)
 
         freq_results_file = \
             open("{}{}_{}_ScarMapper_Frequency.txt"
@@ -277,10 +357,9 @@ class ScarSearch:
         # add the junction list to the summary data
         self.summary_data[8] = junction_type_data
 
-    def templated_insertion_search(self, insertion, lft_target_junction, rt_target_junction, target_name, target_region):
+    def templated_insertion_search(self, insertion, lft_target_junction, rt_target_junction, target_name):
         """
         Search for left and right templates for insertions.
-        :param target_region:
         :param insertion:
         :param lft_target_junction:
         :param rt_target_junction:
@@ -303,7 +382,7 @@ class ScarSearch:
         rt_position = lft_target_junction
 
         while left_not_found and rt_position > lower_limit:
-            target_segment = target_region[lft_position:rt_position]
+            target_segment = self.target_region[lft_position:rt_position]
 
             if lft_query1 == target_segment or lft_query2 == target_segment:
                 lft_template = target_segment
@@ -318,7 +397,7 @@ class ScarSearch:
         lft_position = rt_target_junction
         rt_position = rt_target_junction+5
         while right_not_found and lft_position < upper_limit:
-            target_segment = target_region[lft_position:rt_position]
+            target_segment = self.target_region[lft_position:rt_position]
             if rt_query1 == target_segment or rt_query2 == target_segment:
                 rt_template = target_segment
                 if self.target_dict[target_name][5] == "YES":
@@ -330,10 +409,9 @@ class ScarSearch:
 
         return lft_template, rt_template
 
-    def raw_data_output(self, index_name, read_results_list, target_region):
+    def raw_data_output(self, index_name, read_results_list):
         """
         Handle formatting and writing raw data.
-        :param target_region:
         :param index_name:
         :param read_results_list:
         """
@@ -357,37 +435,35 @@ class ScarSearch:
                 continue
 
             results_outstring += "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n" \
-                .format(lft_del, rt_del, del_size, microhomology, total_ins, ins_size, consensus, target_region)
+                .format(lft_del, rt_del, del_size, microhomology, total_ins, ins_size, consensus, self.target_region)
 
         results_file.write(results_outstring)
         results_file.close()
 
-    def cutsite_search(self, target_name, sgrna, target_region, chrm, start, stop):
+    def cutsite_search(self, target_name, sgrna, chrm, start, stop):
         """
         Find the sgRNA cutsite on the gapped genomic DNA.
         :param stop:
         :param start:
         :param chrm:
         :param sgrna:
-        :param target_region:
         :param target_name:
         """
 
         lft_position = 0
         rt_position = len(sgrna)
-        upper_limit = len(target_region)
+        upper_limit = len(self.target_region)-1
         working_sgrna = sgrna
         rcomp_sgrna = False
+
         if self.target_dict[target_name][5] == 'YES':
             working_sgrna = Sequence_Magic.rcomp(sgrna)
             rcomp_sgrna = True
 
         cutsite_found = False
         while not cutsite_found and rt_position < upper_limit:
-            if target_region[lft_position:rt_position] == working_sgrna:
+            if self.target_region[lft_position:rt_position] == working_sgrna:
                 cutsite_found = True
-                l = lft_position
-                r = rt_position
                 if rcomp_sgrna:
                     self.cutsite = lft_position+3
                 else:
@@ -546,6 +622,8 @@ class DataProcessing:
 
             if match_found:
                 if self.args.Platform == "Illumina":
+
+                    # The adapters on AAVS1.1 are reversed causing the reads to be reversed.
                     if self.index_dict[index_name][7] == "AAVS1.1":
                         self.sequence_dict[index_name].append([left_seq, right_seq])
                     else:
@@ -565,6 +643,15 @@ class DataProcessing:
                                                 .format(self.args.Working_Folder, self.args.Job_Name, index_name))
                     fastq_file_name_list.append("{}{}_{}_R2.fastq"
                                                 .format(self.args.Working_Folder, self.args.Job_Name, index_name))
+
+            elif self.args.Demultiplex and not match_found:
+                fastq_data_dict['unknown']["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
+                fastq_data_dict['unknown']["R2"].append([fastq2_read.name, fastq2_read.seq, fastq2_read.qual])
+                fastq_file_name_list.append("{}{}_unknown_R1.fastq"
+                                            .format(self.args.Working_Folder, self.args.Job_Name))
+                fastq_file_name_list.append("{}{}_unknown_R2.fastq"
+                                            .format(self.args.Working_Folder, self.args.Job_Name))
+
         if self.args.Demultiplex:
             fastq_file_name_list = list(set(fastq_file_name_list))
             self.log.info("Spawning {} Jobs to Compress {} Files.".format(self.args.Spawn, len(fastq_file_name_list)))
@@ -586,7 +673,7 @@ class DataProcessing:
         self.log.info("Spawning {} Jobs to Process {} Libraries".format(self.args.Spawn, len(self.sequence_dict)))
         p = pathos.multiprocessing.Pool(int(self.args.Spawn))
 
-        # My solution for passing key:value groups to through the multiprocessor.  Largest value group goes first.
+        # My solution for passing key:value pairs to through the multiprocessor.  Largest value group goes first.
         data_list = []
         for key in sorted(self.sequence_dict, key=lambda k: len(self.sequence_dict[k]), reverse=True):
             data_list.append([self.log, self.args, self.target_dict, self.index_dict, True, key,
@@ -595,9 +682,7 @@ class DataProcessing:
         # Not sure if clearing this is really necessary but it is not used again so why keep the RAM tied up.
         self.sequence_dict.clear()
 
-        # Initialize the class for doing the search.  Copies of this initialized class are passed to each job.
-        # scar_search = ScarSearch(self.log, self.args, self.target_dict, self.index_dict, fastq=True)
-
+        # Each job is a single instance of the ScarSearch class..
         self.data_output(p.starmap(ScarSearch, data_list))
 
         self.log.info("Main Loop Finished")
@@ -613,6 +698,11 @@ class DataProcessing:
         # If we are demultiplexing the input FASTQ then setup the output files and dataframe.
         if self.args.Demultiplex:
             self.fastq_outfile_dict = collections.defaultdict(list)
+            r1 = FASTQ_Tools.Writer(self.log, "{}{}_unknown_R1.fastq"
+                                    .format(self.args.Working_Folder, self.args.Job_Name))
+            r2 = FASTQ_Tools.Writer(self.log, "{}{}_unknown_R2.fastq"
+                                    .format(self.args.Working_Folder, self.args.Job_Name))
+            self.fastq_outfile_dict['unknown'] = [r1, r2]
 
         master_index_dict = {}
         with open(self.args.Master_Index_File) as f:
@@ -772,14 +862,14 @@ class DataProcessing:
 
         summary_file = open("{}{}_ScarMapper_Summary.txt".format(self.args.Working_Folder, self.args.Job_Name), "w")
         sub_header = \
-            "Cut\tCut Fraction\tLeft Deletion Count\tRight Deletion Count\tInsertion Count\tMicrohomology Count\t" \
+            "No Junction\tCut\tCut Fraction\tLeft Deletion Count\tRight Deletion Count\tInsertion Count\tMicrohomology Count\t" \
             "Normalized Microhomology"
         run_stop = datetime.datetime.today().strftime(self.date_format)
         summary_outstring = "ScarMapper {}\nStart: {}\nEnd: {}\nFASTQ1: {}\nFASTQ2: {}\nReads Analyzed: {}\n\n"\
             .format(__version__, self.run_start, run_stop, self.args.FASTQ1, self.args.FASTQ2, self.read_count, )
         summary_outstring += \
-            "Index Name\tSample Name\tSample Replicate\tTarget\tTotal Found\tFraction Total\tPassing Filters\t" \
-            "Fraction Passing Filters\tNumber Filtered\t{}\tTMEJ\tNormalized TMEJ\tNHEJ\tNormalized NHEJ\t" \
+            "Index Name\tSample Name\tSample Replicate\tTarget\tTotal Found\tFraction Total\tPassing Read Filters\t" \
+            "Fraction Passing Filters\tNo 5' Anchor\tNo 3' Anchor\tBad Consensus\tNumber Filtered\tConsensus Fail\t{}\tTMEJ\tNormalized TMEJ\tNHEJ\tNormalized NHEJ\t" \
             "Non-Microhomology Deletions\tNormalized Non-MH Del\tInsertion >=5 +/- Deletions\t" \
             "Normalized Insertion >=5+/- Deletions\tOther Scar Type\n"\
             .format(sub_header)
@@ -790,7 +880,7 @@ class DataProcessing:
         [5] reads with microhomology; [6] reads with no identifiable cut; [7] filtered reads [8] scar type list.
         '''
 
-        for data_list in summary_data_list:
+        for data_list in summary_data_list:    
             index_name = data_list.summary_data[0]
             sample_name = self.index_dict[index_name][5]
             sample_replicate = self.index_dict[index_name][6]
@@ -802,16 +892,24 @@ class DataProcessing:
             right_del = data_list.summary_data[3]
             total_ins = data_list.summary_data[4]
             microhomology = data_list.summary_data[5]
-            cut = passing_filters-data_list.summary_data[6]
+            cut = passing_filters-data_list.summary_data[6][1]-data_list.summary_data[6][0]
             target = data_list.summary_data[9]
+            no_left_anchor = data_list.summary_data[10][0]
+            no_right_anchor = data_list.summary_data[10][1]
+            bad_ins = data_list.summary_data[10][2]
+            no_junction = data_list.summary_data[6][0]
 
             try:
                 cut_fraction = cut/passing_filters
             except ZeroDivisionError:
                 cut_fraction = 'nan'
 
-            filtered = data_list.summary_data[7]
-            tmej = data_list.summary_data[8][0]
+            filtered = data_list.summary_data[7][0]
+            con_fail = data_list.summary_data[7][1]
+            try:
+                tmej = data_list.summary_data[8][0]
+            except TypeError:
+                continue
             nhej = data_list.summary_data[8][1]
             non_microhomology_del = data_list.summary_data[8][4]
             large_ins = data_list.summary_data[8][2]
@@ -831,9 +929,10 @@ class DataProcessing:
                 tmej_fraction = tmej / cut
 
             summary_outstring += \
-                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n"\
-                .format(index_name, sample_name, sample_replicate, target, library_read_count,
-                        fraction_all_reads, passing_filters, fraction_passing, filtered, cut, cut_fraction,
+                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}" \
+                "\t{}\t{}\t{}\n"\
+                .format(index_name, sample_name, sample_replicate, target, library_read_count, fraction_all_reads,
+                        passing_filters, fraction_passing, no_left_anchor, no_right_anchor, bad_ins, filtered, con_fail, no_junction, cut, cut_fraction,
                         left_del, right_del, total_ins, microhomology, microhomology_fraction, tmej, tmej_fraction,
                         nhej, nhej_fraction, non_microhomology_del, non_mh_del_fraction, large_ins, large_ins_fraction,
                         other_scar)

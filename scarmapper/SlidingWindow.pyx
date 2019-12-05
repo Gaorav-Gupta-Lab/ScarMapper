@@ -21,8 +21,7 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
     cdef int consensus_length = len(consensus)
     cdef int consensus_lft_junction = 0
     cdef int consensus_rt_junction = 0
-    cdef double upper_consensus_limit = 0.90*consensus_length
-    # cdef list read_results_list
+    cdef double upper_consensus_limit = consensus_length-15
     cdef str ldel, rdel, lft_test, rt_test
 
     target_lft_junction = cutsite
@@ -33,6 +32,7 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
 
     cdef bint left_found = False
     cdef bint right_found = False
+    cdef bint cut_found = False
 
     cdef int lft_position, rt_position, consensus_rt_position, consensus_lft_position, i
 
@@ -91,18 +91,21 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
 
         # If there is an N in the insertion then don't include read in the analysis.
         if "N" in consensus_insertion:
-            summary_data[7] += 1
+            summary_data[10][2] += 1
             return [], summary_data
 
+        cut_found = True
         # Count number of insertions
         summary_data[4] += 1
 
     # Count left deletions
     if target_lft_junction < cutsite:
+        cut_found = True
         summary_data[2] += 1
 
     # Count right deletions
     if target_rt_junction > cutsite:
+        cut_found = True
         summary_data[3] += 1
 
     # extract the microhomology
@@ -110,9 +113,17 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
     if consensus_lft_junction > consensus_rt_junction > 0:
         consensus_microhomology = consensus[consensus_rt_junction:consensus_lft_junction]
         if consensus_microhomology:
+            cut_found = True
             summary_data[5] += 1
 
-    # Count number of reads passing all filters
-    summary_data[1] += 1
+    # No Junction found.
+    if consensus_lft_junction < 1 and consensus_rt_junction < 1:
+        summary_data[6][0] += 1
+        return [], summary_data
+
+    # No Cut found.
+    if not cut_found:
+        summary_data[6][1] += 1
+        return [], summary_data
 
     return [ldel, rdel, consensus_insertion, consensus_microhomology, consensus, consensus_lft_junction, consensus_rt_junction, target_lft_junction, target_rt_junction], summary_data

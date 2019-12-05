@@ -3,7 +3,7 @@
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599
-@copyright: 2019
+@copyright: 2020
 """
 import datetime
 import os
@@ -19,7 +19,7 @@ from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FAS
 
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.8.0'
+__version__ = '0.9.0'
 __package__ = 'ScarMapper'
 
 
@@ -91,6 +91,7 @@ def main(command_line_args=None):
     Tool_Box.log_environment_info(log, args, command_line_args)
     start_time = time.time()
     module_name = ""
+    log.info("{} v{}".format(__package__, __version__))
 
     if args.IndelProcessing:
         log.info("Sending FASTQ files to FASTQ preprocessor.")
