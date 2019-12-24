@@ -31,7 +31,7 @@ class ScarSearch:
         self.sequence_list = sequence_list
         self.fastq = fastq
         self.summary_data = None
-        self.target_region = None
+        self.target_region = ""
         self.sgrna = None
         self.cutsite = None
         self.lower_limit = None
@@ -156,7 +156,19 @@ class ScarSearch:
         stop = int(self.target_dict[target_name][3])
         chrm = self.target_dict[target_name][1]
         sgrna = self.target_dict[target_name][4]
-        self.target_region = refseq.fetch(chrm, start, stop)
+
+        temp_region = refseq.fetch(chrm, start, stop)
+        # There is a single "T" insertion at position 138 of AAVS1.1 in our RPE cell line.
+        # We need to put that in the sequence.
+        if self.args.Cell_Line == "hTERT_RPE-1" and target_name == "AAVS1.1":
+
+            for i, nt in enumerate(temp_region):
+                self.target_region += nt
+                if i == 138:
+                    self.target_region += "T"
+        else:
+            self.target_region = temp_region
+
         self.cutsite_search(target_name, sgrna, chrm, start, stop)
         self.window_mapping()
         loop_count = 0
@@ -343,9 +355,9 @@ class ScarSearch:
                 junction_type_data[3] += key_count
 
             freq_results_outstring += "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n" \
-                .format(key_count, key_frequency, scar_type, lft_del, rt_del, del_size, microhomology, microhomology_size,
-                        insertion, ins_size, lft_template, rt_template, consensus_lft_junction, consensus_rt_junction,
-                        template_lft_junction, template_rt_junction, consensus, target_sequence)
+                .format(key_count, key_frequency, scar_type, lft_del, rt_del, del_size, microhomology,
+                        microhomology_size, insertion, ins_size, lft_template, rt_template, consensus_lft_junction,
+                        consensus_rt_junction, template_lft_junction, template_rt_junction, consensus, target_sequence)
 
         freq_results_file = \
             open("{}{}_{}_ScarMapper_Frequency.txt"
@@ -465,7 +477,7 @@ class ScarSearch:
             if self.target_region[lft_position:rt_position] == working_sgrna:
                 cutsite_found = True
                 if rcomp_sgrna:
-                    self.cutsite = lft_position+3
+                    self.cutsite = lft_position+2
                 else:
                     self.cutsite = rt_position-3
 
@@ -657,7 +669,7 @@ class DataProcessing:
             self.log.info("Spawning {} Jobs to Compress {} Files.".format(self.args.Spawn, len(fastq_file_name_list)))
 
             p = pathos.multiprocessing.Pool(int(self.args.Spawn))
-            p.starmap(Tool_Box.compress_files, zip(fastq_file_name_list, itertools.repeat(self.log)))
+            # p.starmap(Tool_Box.compress_files, zip(fastq_file_name_list, itertools.repeat(self.log)))
 
             self.log.info("All Files Compressed")
 
@@ -862,16 +874,16 @@ class DataProcessing:
 
         summary_file = open("{}{}_ScarMapper_Summary.txt".format(self.args.Working_Folder, self.args.Job_Name), "w")
         sub_header = \
-            "No Junction\tCut\tCut Fraction\tLeft Deletion Count\tRight Deletion Count\tInsertion Count\tMicrohomology Count\t" \
-            "Normalized Microhomology"
+            "No Junction\tCut\tCut Fraction\tLeft Deletion Count\tRight Deletion Count\tInsertion Count\t" \
+            "Microhomology Count\tNormalized Microhomology"
         run_stop = datetime.datetime.today().strftime(self.date_format)
         summary_outstring = "ScarMapper {}\nStart: {}\nEnd: {}\nFASTQ1: {}\nFASTQ2: {}\nReads Analyzed: {}\n\n"\
             .format(__version__, self.run_start, run_stop, self.args.FASTQ1, self.args.FASTQ2, self.read_count, )
         summary_outstring += \
             "Index Name\tSample Name\tSample Replicate\tTarget\tTotal Found\tFraction Total\tPassing Read Filters\t" \
-            "Fraction Passing Filters\tNo 5' Anchor\tNo 3' Anchor\tBad Consensus\tNumber Filtered\tConsensus Fail\t{}\tTMEJ\tNormalized TMEJ\tNHEJ\tNormalized NHEJ\t" \
-            "Non-Microhomology Deletions\tNormalized Non-MH Del\tInsertion >=5 +/- Deletions\t" \
-            "Normalized Insertion >=5+/- Deletions\tOther Scar Type\n"\
+            "Fraction Passing Filters\tNo 5' Anchor\tNo 3' Anchor\tBad Consensus\tNumber Filtered\tConsensus Fail\t" \
+            "{}\tTMEJ\tNormalized TMEJ\tNHEJ\tNormalized NHEJ\tNon-Microhomology Deletions\tNormalized Non-MH Del\t" \
+            "Insertion >=5 +/- Deletions\tNormalized Insertion >=5+/- Deletions\tOther Scar Type\n"\
             .format(sub_header)
 
         '''
@@ -932,10 +944,10 @@ class DataProcessing:
                 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}" \
                 "\t{}\t{}\t{}\n"\
                 .format(index_name, sample_name, sample_replicate, target, library_read_count, fraction_all_reads,
-                        passing_filters, fraction_passing, no_left_anchor, no_right_anchor, bad_ins, filtered, con_fail, no_junction, cut, cut_fraction,
-                        left_del, right_del, total_ins, microhomology, microhomology_fraction, tmej, tmej_fraction,
-                        nhej, nhej_fraction, non_microhomology_del, non_mh_del_fraction, large_ins, large_ins_fraction,
-                        other_scar)
+                        passing_filters, fraction_passing, no_left_anchor, no_right_anchor, bad_ins, filtered, con_fail,
+                        no_junction, cut, cut_fraction, left_del, right_del, total_ins, microhomology,
+                        microhomology_fraction, tmej, tmej_fraction,nhej, nhej_fraction, non_microhomology_del,
+                        non_mh_del_fraction, large_ins, large_ins_fraction, other_scar)
 
         summary_outstring += "\nUnidentified\t{}\t{}" \
             .format(self.read_count_dict["unidentified"], self.read_count_dict["unidentified"] / self.read_count)
