@@ -22,9 +22,9 @@ class TargetMapper:
         :param log:
         :param args:
         """
-        self.target_data = Tool_Box.FileParser.indices(log, args.Target_File)
-        # self.target_data = [x[0] for x in Tool_Box.FileParser.indices(log, args.Target_File)]
-        self.refseq = pysam.FastaFile(args.Ref_Seq)
+        self.target_data = Tool_Box.FileParser.indices(log, args.TargetFile)
+        # self.target_data = [x[0] for x in Tool_Box.FileParser.indices(log, args.TargetFile)]
+        self.refseq = pysam.FastaFile(args.RefSeq)
         self.log = log
         self.args = args
 

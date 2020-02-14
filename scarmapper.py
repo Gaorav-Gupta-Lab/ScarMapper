@@ -19,7 +19,7 @@ from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FAS
 
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.9.0'
+__version__ = '0.9.1'
 __package__ = 'ScarMapper'
 
 
@@ -32,10 +32,10 @@ def atropos_trim(args, log, method):
     :return:
     """
 
-    fastq1_trimmed = "{}{}_Trim.R1.fastq.gz".format(args.Working_Folder, args.Job_Name)
-    trim_report = "{}Atropos_{}_Trim_Report.txt".format(args.Working_Folder, args.Job_Name)
+    fastq1_trimmed = "{}{}_Trim.R1.fastq.gz".format(args.WorkingFolder, args.Job_Name)
+    trim_report = "{}Atropos_{}_Trim_Report.txt".format(args.WorkingFolder, args.Job_Name)
 
-    fastq2_trimmed = "{}{}_Trim.R2.fastq.gz".format(args.Working_Folder, args.Job_Name)
+    fastq2_trimmed = "{}{}_Trim.R2.fastq.gz".format(args.WorkingFolder, args.Job_Name)
 
     if args.NextSeq_Trim:
         nextseq_trim = "--nextseq-trim 1"
@@ -54,12 +54,12 @@ def atropos_trim(args, log, method):
         .format(args.Atropos_Aligner, args.Spawn, additional_adapters, args.Anchored_Adapters_5p,
                 args.Anchored_Adapters_3p, fastq1_trimmed, fastq2_trimmed, args.FASTQ1, args.FASTQ2, nextseq_trim,
                 args.Adapter_Mismatch_Fraction, trim_report, args.Read_Queue_Size, args.Result_Queue_Size, op_order)
-    config_file = open("{}{}_Atropos_Config.txt".format(args.Working_Folder, args.Job_Name), "w")
+    config_file = open("{}{}_Atropos_Config.txt".format(args.WorkingFolder, args.Job_Name), "w")
     config_file.write(config_block)
     config_file.close()
 
     log.info("Beginning Atropos Trim of {} library".format(method))
-    subprocess.run("atropos --config {}{}_Atropos_Config.txt".format(args.Working_Folder, args.Job_Name), shell=True)
+    subprocess.run("atropos --config {}{}_Atropos_Config.txt".format(args.WorkingFolder, args.Job_Name), shell=True)
 
     return fastq1_trimmed, fastq2_trimmed
 
@@ -69,10 +69,12 @@ def main(command_line_args=None):
     Let's get this party started.
     :param command_line_args:
     """
+    start_time = time.time()
     VersionDependencies.python_check()
 
     if not command_line_args:
         command_line_args = sys.argv
+
     run_start = datetime.datetime.today().strftime("%a %b %d %H:%M:%S %Y")
     parser = argparse.ArgumentParser(description="A package to map genomic repair scars.\n {0} v{1}"
                                      .format(__package__, __version__), formatter_class=argparse.RawTextHelpFormatter)
@@ -80,16 +82,12 @@ def main(command_line_args=None):
     parser.add_argument('--options_file', action='store', dest='options_file', required=True,
                         help='File containing program parameters.')
 
-    options_parser = Tool_Box.options_file(parser)
-    args = options_parser.parse_args()
-    args, options_parser = string_to_boolean(args, options_parser)
-
-    # Check options file for errors.
-    error_checking(args)
+    # Check options file for errors and return object.
+    args = error_checking(string_to_boolean(parser))
 
     log = Tool_Box.Logger(args)
     Tool_Box.log_environment_info(log, args, command_line_args)
-    start_time = time.time()
+    
     module_name = ""
     log.info("{} v{}".format(__package__, __version__))
 
@@ -98,24 +96,24 @@ def main(command_line_args=None):
         fastq_file1 = args.FASTQ1
         fastq_file2 = args.FASTQ2
 
-        if args.Atropos_Trim:
-            fastq_file1, fastq_file2 = atropos_trim(args, log, "ScarMapper")
+        # if args.Atropos_Trim:
+        #     fastq_file1, fastq_file2 = atropos_trim(args, log, "ScarMapper")
 
         fq1 = FASTQ_Tools.FASTQ_Reader(fastq_file1, log)
         fq2 = FASTQ_Tools.FASTQ_Reader(fastq_file2, log)
 
-        targetmapper = Target_Mapper.TargetMapper(log, args)
-        indel_processing = Indel_Processing.DataProcessing(log, args, run_start, fq1, fq2, targetmapper.targets)
+        target_mapper = Target_Mapper.TargetMapper(log, args)
+        indel_processing = Indel_Processing.DataProcessing(log, args, run_start, fq1, fq2, target_mapper.targets)
         indel_processing.main_loop()
 
     elif not args.IndelProcessing:
         log.info("Process Replicates.")
-        index_line_list = Tool_Box.FileParser.indices(log, args.Index_File)
+        index_line_list = Tool_Box.FileParser.indices(log, args.SampleManifest)
         data_dict = collections.defaultdict(list)
 
-        for l in index_line_list:
-            sample_name = l[2]
-            index_name = l[0]
+        for sample_info in index_line_list:
+            # sample_name = sample_info[2]
+            index_name = sample_info[0]
             file_name = "{}{}_{}_ScarMapper_Frequency.txt".format(args.DataFiles, args.Job_Name, index_name)
             freq_file_data = Tool_Box.FileParser.indices(log, file_name)
             for row in freq_file_data:
@@ -138,7 +136,7 @@ def main(command_line_args=None):
             freq_results_outstring += "{}\t{}\n".format(freq, row_string)
 
         freq_results_file = \
-            open("{}{}_{}_ScarMapper_Frequency.txt".format(args.Working_Folder, args.Job_Name, args.SampleName), "w")
+            open("{}{}_{}_ScarMapper_Frequency.txt".format(args.WorkingFolder, args.Job_Name, args.SampleName), "w")
 
         freq_results_file.write(freq_results_outstring)
         freq_results_file.close()
@@ -155,11 +153,15 @@ def main(command_line_args=None):
 def error_checking(args):
     """
     Check parameter file for errors.
+    :return:
     :param args:
     """
-    if not os.path.exists(args.Working_Folder):
+
+    # args = string_to_boolean(parser)
+
+    if not os.path.exists(args.WorkingFolder):
         print("\033[1;31mERROR:\n\tWorking Folder Path: {} Not Found.  Check Options File."
-              .format(args.Working_Folder))
+              .format(args.WorkingFolder))
         raise SystemExit(1)
 
     if getattr(args, "FASTQ1", False) and getattr(args, "ConsensusSequence", False):
@@ -185,30 +187,28 @@ def error_checking(args):
               .format(args.FASTQ2))
         raise SystemExit(1)
 
-    if getattr(args, "ConsensusSequence", False) and args.Atropos_Trim:
-        print("\033[1;31mERROR:\n\t--Atropos_Trim must be false when a --ConsensusSequence file is provided."
-              .format(args.FASTQ2))
-        raise SystemExit(1)
+    return args
 
 
-def string_to_boolean(args, options_parser):
+def string_to_boolean(parser):
     """
     Converts strings to boolean.  Done to keep the eval() function out of the code.
-    :param args:
-    :param options_parser:
+    :param parser:
     :return:
     """
-
-    if args.IndelProcessing == "True":
-        options_parser.set_defaults(Atropos_Trim=bool(strtobool(args.Atropos_Trim)))
-        options_parser.set_defaults(Demultiplex=bool(strtobool(args.Demultiplex)))
-        options_parser.set_defaults(OutputRawData=bool(strtobool(args.OutputRawData)))
-        options_parser.set_defaults(NextSeq_Trim=bool(strtobool(args.NextSeq_Trim)))
-    options_parser.set_defaults(IndelProcessing=bool(strtobool(args.IndelProcessing)))
-
+    options_parser = Tool_Box.options_file(parser)
     args = options_parser.parse_args()
 
-    return args, options_parser
+    if args.IndelProcessing == "True":
+        # options_parser.set_defaults(Atropos_Trim=bool(strtobool(args.Atropos_Trim)))
+        options_parser.set_defaults(Demultiplex=bool(strtobool(args.Demultiplex)))
+        options_parser.set_defaults(OutputRawData=bool(strtobool(args.OutputRawData)))
+        # options_parser.set_defaults(NextSeq_Trim=bool(strtobool(args.NextSeq_Trim)))
+    options_parser.set_defaults(IndelProcessing=bool(strtobool(args.IndelProcessing)))
+
+    # args = options_parser.parse_args()
+
+    return options_parser.parse_args()
 
 
 if __name__ == '__main__':

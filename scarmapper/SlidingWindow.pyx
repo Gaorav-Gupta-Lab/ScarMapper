@@ -16,7 +16,7 @@ Cython version of Sliding Window def.
 """
 
 cpdef sliding_window(str consensus, str target_region, int cutsite, int target_length, int lower_limit, int upper_limit,
-                     object summary_data, list left_target_windows, list right_target_windows):
+                     object summary_data, list left_target_windows, list right_target_windows, str cutwindow):
 
     cdef int consensus_length = len(consensus)
     cdef int consensus_lft_junction = 0
@@ -42,13 +42,19 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
     the first perfect match of the window from the query and target defines the 5' junction.
     '''
 
-    consensus_rt_position = cutsite
+    consensus_rt_position = cutsite+10
     consensus_lft_position = consensus_rt_position-10
 
     while not left_found and consensus_lft_position > lower_limit:
         query_segment = consensus[consensus_lft_position:consensus_rt_position]
         for i, target_segment in enumerate(left_target_windows):
             if query_segment == target_segment:
+                query_cutwindow = consensus[consensus_lft_position+5:consensus_rt_position+5]
+
+                if query_cutwindow == cutwindow:
+                    summary_data[6][1] += 1
+                    return [], summary_data
+
                 rt_position = cutsite-i
                 left_found = True
                 target_lft_junction = rt_position
@@ -67,7 +73,7 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
     '''
 
     # Move to the expected cutsite position on the consensus from the 3' end.
-    consensus_lft_position = consensus_length-(target_length-cutsite)
+    consensus_lft_position = consensus_length-(target_length-cutsite)-10
     consensus_rt_position = consensus_lft_position+10
     while not right_found and consensus_rt_position < upper_consensus_limit:
         query_segment = consensus[consensus_lft_position:consensus_rt_position]
@@ -83,6 +89,11 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
         # increment consensus window
         consensus_lft_position += 1
         consensus_rt_position += 1
+
+    # No Junction found.
+    if consensus_lft_junction < 1 and consensus_rt_junction < 1:
+        summary_data[6][0] += 1
+        return [], summary_data
 
     # extract the insertion
     consensus_insertion = ""
@@ -115,11 +126,6 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
         if consensus_microhomology:
             cut_found = True
             summary_data[5] += 1
-
-    # No Junction found.
-    if consensus_lft_junction < 1 and consensus_rt_junction < 1:
-        summary_data[6][0] += 1
-        return [], summary_data
 
     # No Cut found.
     if not cut_found:
