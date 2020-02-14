@@ -17,7 +17,7 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.9.0'
+__version__ = '0.9.1'
 __package__ = 'ScarMapper'
 
 
@@ -51,7 +51,6 @@ class ScarSearch:
         # Set upper and lower limit to be 5 nt from end of primers
         self.lower_limit = 15
         self.upper_limit = self.target_length-15
-
         lft_position = self.cutsite-10
         rt_position = self.cutsite
 
@@ -105,14 +104,14 @@ class ScarSearch:
         rt_seq = Sequence_Magic.rcomp(right_seq)
         right_limit = len(right_seq) - 15
         left_limit = 15
-        left_position = len(left_seq) - 10
+        left_position = len(left_seq) - 5
         right_position = len(left_seq)
         consensus_seq = ""
 
         while left_position > left_limit and not consensus_seq:
             left_block = left_seq[left_position:right_position]
             lft_position = 0
-            rt_position = 10
+            rt_position = 5
 
             while rt_position < right_limit and not consensus_seq:
                 test_window = rt_seq[lft_position:rt_position]
@@ -145,7 +144,7 @@ class ScarSearch:
         junction_type_data = [0, 0, 0, 0, 0]
         read_results_list = []
         results_freq_dict = collections.defaultdict(list)
-        refseq = pysam.FastaFile(self.args.Ref_Seq)
+        refseq = pysam.FastaFile(self.args.RefSeq)
 
         try:
             start = int(self.target_dict[target_name][2])
@@ -160,7 +159,7 @@ class ScarSearch:
         temp_region = refseq.fetch(chrm, start, stop)
         # There is a single "T" insertion at position 138 of AAVS1.1 in our RPE cell line.
         # We need to put that in the sequence.
-        if self.args.Cell_Line == "hTERT_RPE-1" and target_name == "AAVS1.1":
+        if self.args.Cell_Line == "hTERT_RPE-2" and target_name == "AAVS1.1":
 
             for i, nt in enumerate(temp_region):
                 self.target_region += nt
@@ -238,11 +237,11 @@ class ScarSearch:
             '''
             # count reads that pass the read filters
             self.summary_data[1] += 1
-
+            cutwindow = self.target_region[self.cutsite-5:self.cutsite+5]
             sub_list, self.summary_data = \
                 SlidingWindow.sliding_window(consensus_seq, self.target_region, self.cutsite, self.target_length,
                                              self.lower_limit, self.upper_limit, self.summary_data,
-                                             self.left_target_windows, self.right_target_windows)
+                                             self.left_target_windows, self.right_target_windows, cutwindow)
 
             '''
             The sub_list holds the data for a single consensus read.  These data are [left deletion, right deletion, 
@@ -253,6 +252,7 @@ class ScarSearch:
             if sub_list:
                 read_results_list.append(sub_list)
                 freq_key = "{}|{}|{}|{}".format(sub_list[0], sub_list[1], sub_list[2], sub_list[3])
+
             else:
                 continue
 
@@ -361,7 +361,7 @@ class ScarSearch:
 
         freq_results_file = \
             open("{}{}_{}_ScarMapper_Frequency.txt"
-                 .format(self.args.Working_Folder, self.args.Job_Name, index_name), "w")
+                 .format(self.args.WorkingFolder, self.args.Job_Name, index_name), "w")
 
         freq_results_file.write(freq_results_outstring)
         freq_results_file.close()
@@ -428,7 +428,7 @@ class ScarSearch:
         :param read_results_list:
         """
         results_file = open("{}{}_{}_ScarMapper.txt"
-                            .format(self.args.Working_Folder, self.args.Job_Name, index_name), "w")
+                            .format(self.args.WorkingFolder, self.args.Job_Name, index_name), "w")
 
         results_outstring = "Left Deletions\tRight Deletions\tDeletion Size\tMicrohomology\tInsertion\t" \
                             "Insertion Size\tConsensus\tTarget Region\n"
@@ -485,7 +485,7 @@ class ScarSearch:
             rt_position += 1
 
         if not cutsite_found:
-            self.log.error("sgRNA {} does not map to locus {}; chr{}:{}-{}.  Check --Target_File and try again."
+            self.log.error("sgRNA {} does not map to locus {}; chr{}:{}-{}.  Check --TargetFile and try again."
                            .format(sgrna, target_name, chrm, start, stop))
             os._exit(1)
 
@@ -558,7 +558,7 @@ class DataProcessing:
         self.fastq_outfile_dict = None
         self.target_dict = target_dict
         self.index_dict = self.dictionary_build()
-        self.refseq = pysam.FastaFile(args.Ref_Seq)
+        self.refseq = pysam.FastaFile(args.RefSeq)
         self.results_dict = collections.defaultdict(list)
         self.sequence_dict = collections.defaultdict(list)
         self.read_count_dict = collections.defaultdict()
@@ -581,7 +581,7 @@ class DataProcessing:
         while not eof:
             # Debugging Code Block
             if self.args.Verbose == "DEBUG":
-                read_limit = 300000
+                read_limit = 500000
                 if self.read_count > read_limit:
                     if self.args.Demultiplex:
                         for index_name in fastq_data_dict:
@@ -634,15 +634,18 @@ class DataProcessing:
 
             if match_found:
                 if self.args.Platform == "Illumina":
+                    # The error on the last 5 nt from iSeq runs is huge.  This trims those off.
+                    lseq = left_seq[:-3]
+                    rseq = right_seq[:-3]
 
                     # The adapters on AAVS1.1 are reversed causing the reads to be reversed.
                     if self.index_dict[index_name][7] == "AAVS1.1":
-                        self.sequence_dict[index_name].append([left_seq, right_seq])
+                        self.sequence_dict[index_name].append([lseq, rseq])
                     else:
-                        self.sequence_dict[index_name].append([right_seq, left_seq])
+                        self.sequence_dict[index_name].append([rseq, lseq])
 
                 elif self.args.Platform == "Ramsden":
-                    self.sequence_dict[index_name].append([left_seq, right_seq])
+                    self.sequence_dict[index_name].append([lseq, rseq])
                 else:
                     self.log.error("--Platform {} not defined.  Edit parameter file and try again"
                                    .format(self.args.Platform))
@@ -652,24 +655,24 @@ class DataProcessing:
                     fastq_data_dict[index_name]["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
                     fastq_data_dict[index_name]["R2"].append([fastq2_read.name, fastq2_read.seq, fastq2_read.qual])
                     fastq_file_name_list.append("{}{}_{}_R1.fastq"
-                                                .format(self.args.Working_Folder, self.args.Job_Name, index_name))
+                                                .format(self.args.WorkingFolder, self.args.Job_Name, index_name))
                     fastq_file_name_list.append("{}{}_{}_R2.fastq"
-                                                .format(self.args.Working_Folder, self.args.Job_Name, index_name))
+                                                .format(self.args.WorkingFolder, self.args.Job_Name, index_name))
 
             elif self.args.Demultiplex and not match_found:
                 fastq_data_dict['unknown']["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
                 fastq_data_dict['unknown']["R2"].append([fastq2_read.name, fastq2_read.seq, fastq2_read.qual])
                 fastq_file_name_list.append("{}{}_unknown_R1.fastq"
-                                            .format(self.args.Working_Folder, self.args.Job_Name))
+                                            .format(self.args.WorkingFolder, self.args.Job_Name))
                 fastq_file_name_list.append("{}{}_unknown_R2.fastq"
-                                            .format(self.args.Working_Folder, self.args.Job_Name))
+                                            .format(self.args.WorkingFolder, self.args.Job_Name))
 
         if self.args.Demultiplex:
             fastq_file_name_list = list(set(fastq_file_name_list))
             self.log.info("Spawning {} Jobs to Compress {} Files.".format(self.args.Spawn, len(fastq_file_name_list)))
 
             p = pathos.multiprocessing.Pool(int(self.args.Spawn))
-            # p.starmap(Tool_Box.compress_files, zip(fastq_file_name_list, itertools.repeat(self.log)))
+            p.starmap(Tool_Box.compress_files, zip(fastq_file_name_list, itertools.repeat(self.log)))
 
             self.log.info("All Files Compressed")
 
@@ -711,9 +714,9 @@ class DataProcessing:
         if self.args.Demultiplex:
             self.fastq_outfile_dict = collections.defaultdict(list)
             r1 = FASTQ_Tools.Writer(self.log, "{}{}_unknown_R1.fastq"
-                                    .format(self.args.Working_Folder, self.args.Job_Name))
+                                    .format(self.args.WorkingFolder, self.args.Job_Name))
             r2 = FASTQ_Tools.Writer(self.log, "{}{}_unknown_R2.fastq"
-                                    .format(self.args.Working_Folder, self.args.Job_Name))
+                                    .format(self.args.WorkingFolder, self.args.Job_Name))
             self.fastq_outfile_dict['unknown'] = [r1, r2]
 
         master_index_dict = {}
@@ -724,7 +727,7 @@ class DataProcessing:
                 l_list = [x for x in l.strip("\n").split("\t")]
                 master_index_dict[l_list[0]] = [l_list[1], l_list[2]]
 
-        sample_index_list = Tool_Box.FileParser.indices(self.log, self.args.Index_File)
+        sample_index_list = Tool_Box.FileParser.indices(self.log, self.args.SampleManifest)
         index_dict = collections.defaultdict(list)
 
         for sample in sample_index_list:
@@ -732,12 +735,16 @@ class DataProcessing:
 
             if index_name in index_dict:
                 self.log.error("The index {0} is duplicated.  Correct the error in {1} and try again."
-                               .format(sample[0], self.args.Index_File))
+                               .format(sample[0], self.args.SampleManifest))
                 raise SystemExit(1)
 
             sample_name = sample[1]
             sample_replicate = sample[2]
-            target_name = sample[4]
+            try:
+                target_name = sample[4]
+            except IndexError:
+                self.log.error("Sample Manifest is missing Target Name column")
+                raise SystemExit(1)
 
             if self.args.Platform == "Illumina":
                 left_index_sequence, right_index_sequence = master_index_dict[index_name]
@@ -767,9 +774,9 @@ class DataProcessing:
 
             if self.args.Demultiplex:
                 r1 = FASTQ_Tools.Writer(self.log, "{}{}_{}_R1.fastq"
-                                        .format(self.args.Working_Folder, self.args.Job_Name, index_name))
+                                        .format(self.args.WorkingFolder, self.args.Job_Name, index_name))
                 r2 = FASTQ_Tools.Writer(self.log, "{}{}_{}_R2.fastq"
-                                        .format(self.args.Working_Folder, self.args.Job_Name, index_name))
+                                        .format(self.args.WorkingFolder, self.args.Job_Name, index_name))
                 self.fastq_outfile_dict[index_name] = [r1, r2]
 
         return index_dict
@@ -835,8 +842,9 @@ class DataProcessing:
 
             if self.args.Platform == "Illumina":
                 # The indices are after the last ":" in the header.
-                index_query = "{}+{}".format(right_index, left_index)
-                right_match = left_match = Sequence_Magic.match_maker(index_query, fastq2_read.name.split(":")[-1])
+                # index_query = "{}+{}".format(right_index, left_index)
+                right_match = Sequence_Magic.match_maker(right_index, fastq2_read.name.split(":")[-1].split("+")[0])
+                left_match = Sequence_Magic.match_maker(left_index, fastq2_read.name.split(":")[-1].split("+")[1])
 
             elif self.args.Platform == "Ramsden":
                 left_match = Sequence_Magic.match_maker(left_index, fastq2_read.seq[:len(left_index)])
@@ -845,7 +853,7 @@ class DataProcessing:
             if index_key not in self.read_count_dict:
                 self.read_count_dict[index_key] = 0
 
-            if left_match <= 2 and right_match <= 2:
+            if left_match <= 1 and right_match <= 1:
                 self.read_count_dict[index_key] += 1
                 match_found = True
 
@@ -872,7 +880,7 @@ class DataProcessing:
 
         self.log.info("Formatting data and writing summary file")
 
-        summary_file = open("{}{}_ScarMapper_Summary.txt".format(self.args.Working_Folder, self.args.Job_Name), "w")
+        summary_file = open("{}{}_ScarMapper_Summary.txt".format(self.args.WorkingFolder, self.args.Job_Name), "w")
         sub_header = \
             "No Junction\tCut\tCut Fraction\tLeft Deletion Count\tRight Deletion Count\tInsertion Count\t" \
             "Microhomology Count\tNormalized Microhomology"

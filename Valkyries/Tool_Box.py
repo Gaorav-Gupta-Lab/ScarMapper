@@ -309,7 +309,7 @@ class Logger:
         else:
             log_file = args.Job_Name
 
-        self._log_filename = "{0}{1}.log".format(args.Working_Folder, log_file)
+        self._log_filename = "{0}{1}.log".format(args.WorkingFolder, log_file)
 
         try:
             log = open(self._log_filename, "w")
@@ -379,7 +379,7 @@ class Logger:
 def log_environment_info(log, args, command_line_args):
     log.info("original_command_line|{}".format(' '.join(command_line_args)))
     log.info('command_options|{}'.format(args))
-    log.info('Working_Folder|{}'.format(args.Working_Folder))
+    log.info('WorkingFolder|{}'.format(args.WorkingFolder))
     log.info('platform_uname|{}'.format(platform.uname()))
     log.info('platform_python_version|{}'.format(platform.python_version()))
 
