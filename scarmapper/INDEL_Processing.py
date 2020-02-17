@@ -17,7 +17,7 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.9.1'
+__version__ = '0.10.0'
 __package__ = 'ScarMapper'
 
 
@@ -102,8 +102,8 @@ class ScarSearch:
         :return:
         """
         rt_seq = Sequence_Magic.rcomp(right_seq)
-        right_limit = len(right_seq) - 15
-        left_limit = 15
+        right_limit = len(right_seq) - 25
+        left_limit = 25
         left_position = len(left_seq) - 5
         right_position = len(left_seq)
         consensus_seq = ""
@@ -159,6 +159,7 @@ class ScarSearch:
         temp_region = refseq.fetch(chrm, start, stop)
         # There is a single "T" insertion at position 138 of AAVS1.1 in our RPE cell line.
         # We need to put that in the sequence.
+        # I think this is a sequencing artifact.
         if self.args.Cell_Line == "hTERT_RPE-2" and target_name == "AAVS1.1":
 
             for i, nt in enumerate(temp_region):
@@ -185,17 +186,17 @@ class ScarSearch:
 
             if self.fastq:
                 left_seq, right_seq = seq
-
-                left_block_found, left_seq = self.trim_phasing(left_seq, left_read=True)
-                right_block_found, right_seq = self.trim_phasing(right_seq, left_read=False)
-
-                # Count sequences that don't have a 5' anchor.
-                if not left_block_found:
-                    self.summary_data[10][0] += 1
-
-                # Count sequences that don't have a 3' anchor.
-                if not right_block_found:
-                    self.summary_data[10][1] += 1
+                left_block_found = right_block_found = True
+                # left_block_found, left_seq = self.trim_phasing(left_seq, left_read=True)
+                # right_block_found, right_seq = self.trim_phasing(right_seq, left_read=False)
+                #
+                # # Count sequences that don't have a 5' anchor.
+                # if not left_block_found:
+                #     self.summary_data[10][0] += 1
+                #
+                # # Count sequences that don't have a 3' anchor.
+                # if not right_block_found:
+                #     self.summary_data[10][1] += 1
 
                 # Muscle will not properly gap sequences with an overlap smaller than about 50 nucleotides.
                 # consensus_seq = \
@@ -237,7 +238,8 @@ class ScarSearch:
             '''
             # count reads that pass the read filters
             self.summary_data[1] += 1
-            cutwindow = self.target_region[self.cutsite-5:self.cutsite+5]
+            cutwindow = self.target_region[self.cutsite-4:self.cutsite+4]
+            # Tool_Box.debug_messenger([self.target_region, consensus_seq])
             sub_list, self.summary_data = \
                 SlidingWindow.sliding_window(consensus_seq, self.target_region, self.cutsite, self.target_length,
                                              self.lower_limit, self.upper_limit, self.summary_data,
