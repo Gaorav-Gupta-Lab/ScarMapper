@@ -41,24 +41,27 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
     end of the read one nucleotide at a time using a 10 nucleotide sliding window.  The 3' position of
     the first perfect match of the window from the query and target defines the 5' junction.
     '''
-
-    consensus_rt_position = cutsite+10
+    padding = 25
+    # consensus_rt_position = cutsite+padding
+    consensus_rt_position = consensus_length
     consensus_lft_position = consensus_rt_position-10
 
     while not left_found and consensus_lft_position > lower_limit:
         query_segment = consensus[consensus_lft_position:consensus_rt_position]
         for i, target_segment in enumerate(left_target_windows):
             if query_segment == target_segment:
-                query_cutwindow = consensus[consensus_lft_position+5:consensus_rt_position+5]
+                query_cutwindow = consensus[consensus_lft_position+6:consensus_rt_position+4]
 
                 if query_cutwindow == cutwindow:
                     summary_data[6][1] += 1
                     return [], summary_data
 
-                rt_position = cutsite-i
+                # rt_position = cutsite-i
                 left_found = True
-                target_lft_junction = rt_position
-                consensus_lft_junction = rt_position
+                target_lft_junction = cutsite-i
+                # target_lft_junction = rt_position
+                # consensus_lft_junction = rt_position
+                consensus_lft_junction = consensus_rt_position
                 ldel = target_region[target_lft_junction:cutsite]
                 break
 
@@ -73,15 +76,16 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
     '''
 
     # Move to the expected cutsite position on the consensus from the 3' end.
-    consensus_lft_position = consensus_length-(target_length-cutsite)-10
+    # consensus_lft_position = consensus_length-(target_length-cutsite)-padding
+    consensus_lft_position = 0
     consensus_rt_position = consensus_lft_position+10
     while not right_found and consensus_rt_position < upper_consensus_limit:
         query_segment = consensus[consensus_lft_position:consensus_rt_position]
         for i, target_segment in enumerate(right_target_windows):
             if query_segment == target_segment:
-                lft_position = cutsite+i
+                # lft_position = cutsite+i
                 right_found = True
-                target_rt_junction = lft_position
+                target_rt_junction = cutsite+i
                 consensus_rt_junction = consensus_lft_position
                 rdel = target_region[cutsite:target_rt_junction]
                 break

@@ -19,7 +19,7 @@ from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FAS
 
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.9.1'
+__version__ = '0.10.0'
 __package__ = 'ScarMapper'
 
 
@@ -205,8 +205,7 @@ def string_to_boolean(parser):
         options_parser.set_defaults(OutputRawData=bool(strtobool(args.OutputRawData)))
         # options_parser.set_defaults(NextSeq_Trim=bool(strtobool(args.NextSeq_Trim)))
     options_parser.set_defaults(IndelProcessing=bool(strtobool(args.IndelProcessing)))
-
-    # args = options_parser.parse_args()
+    options_parser.set_defaults(Verbose=args.Verbose.upper())
 
     return options_parser.parse_args()
 
