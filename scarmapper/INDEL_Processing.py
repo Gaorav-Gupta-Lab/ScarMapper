@@ -13,11 +13,13 @@ import subprocess
 import time
 import pathos
 import pysam
+from natsort import natsort
+
 from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.10.0'
+__version__ = '0.11.1'
 __package__ = 'ScarMapper'
 
 
@@ -552,13 +554,15 @@ class ScarSearch:
 
 
 class DataProcessing:
-    def __init__(self, log, args, run_start, fq1=None, fq2=None, target_dict=None):
+    def __init__(self, log, args, run_start, targeting, fq1=None, fq2=None):
         self.log = log
         self.args = args
         self.date_format = "%a %b %d %H:%M:%S %Y"
         self.run_start = run_start
         self.fastq_outfile_dict = None
-        self.target_dict = target_dict
+        self.target_dict = targeting.targets
+        self.phase_dict = targeting.phasing
+        self.phase_count = collections.defaultdict(lambda: collections.defaultdict(int))
         self.index_dict = self.dictionary_build()
         self.refseq = pysam.FastaFile(args.RefSeq)
         self.results_dict = collections.defaultdict(list)
@@ -614,13 +618,13 @@ class DataProcessing:
                 eof = True
                 continue
 
-            # ToDo: Short read scores should be incorporated into the summary file.
-            if len(fastq1_read.seq) < int(self.args.Minimum_Length):
-                # fastq1_short_count += 1
-                continue
-            elif len(fastq2_read.seq) < int(self.args.Minimum_Length):
-                # fastq2_short_count += 1
-                continue
+            # # I removed this because it only applied to Ion and we no longer use Ion for this technique
+            # if len(fastq1_read.seq) < int(self.args.Minimum_Length):
+            #     # fastq1_short_count += 1
+            #     continue
+            # elif len(fastq2_read.seq) < int(self.args.Minimum_Length):
+            #     # fastq2_short_count += 1
+            #     continue
 
             self.read_count += 1
             if self.read_count % 100000 == 0:
@@ -635,13 +639,36 @@ class DataProcessing:
                 self.index_matching(fastq1_read, fastq2_read)
 
             if match_found:
+                # Now that a match has been found the first order of business is to score the phasing.
+                locus = self.index_dict[index_name][7]
+                phase_key = "{}+{}".format(index_name, locus)
+                r2_found = False
+                r1_found = False
+                for r2_phase, r1_phase in zip(self.phase_dict[locus]["R2"], self.phase_dict[locus]["R1"]):
+                    r2_phase_name = r2_phase[1]
+                    r1_phase_name = r1_phase[1]
+
+                    if r2_phase[0] == left_seq[:len(r2_phase[0])] and not r2_found:
+                        self.phase_count[phase_key]["Phase "+r2_phase_name] += 1
+                        r2_found = True
+
+                    if r1_phase[0] == right_seq[:len(r1_phase[0])] and not r1_found:
+                        self.phase_count[phase_key]["Phase "+r1_phase_name] += 1
+                        r1_found = True
+
+                # if no phasing is found then note that.
+                if not r2_found:
+                    self.phase_count[phase_key]["No Read 2 Phasing"] += 1
+                if not r1_found:
+                    self.phase_count[phase_key]["No Read 1 Phasing"] += 1
+
                 if self.args.Platform == "Illumina":
                     # The error on the last 5 nt from iSeq runs is huge.  This trims those off.
                     lseq = left_seq[:-3]
                     rseq = right_seq[:-3]
 
                     # The adapters on AAVS1.1 are reversed causing the reads to be reversed.
-                    if self.index_dict[index_name][7] == "AAVS1.1":
+                    if locus == "AAVS1.1":
                         self.sequence_dict[index_name].append([lseq, rseq])
                     else:
                         self.sequence_dict[index_name].append([rseq, lseq])
@@ -884,17 +911,25 @@ class DataProcessing:
 
         summary_file = open("{}{}_ScarMapper_Summary.txt".format(self.args.WorkingFolder, self.args.Job_Name), "w")
         sub_header = \
-            "No Junction\tCut\tCut Fraction\tLeft Deletion Count\tRight Deletion Count\tInsertion Count\t" \
+            "No Junction\tScar Count\tScar Fraction\tLeft Deletion Count\tRight Deletion Count\tInsertion Count\t" \
             "Microhomology Count\tNormalized Microhomology"
         run_stop = datetime.datetime.today().strftime(self.date_format)
+
+        phasing_labels = ""
+        for phase_key in self.phase_count:
+            for phase in natsort.natsorted(self.phase_count[phase_key]):
+                phasing_labels += "{}\t".format(phase)
+            break
+
         summary_outstring = "ScarMapper {}\nStart: {}\nEnd: {}\nFASTQ1: {}\nFASTQ2: {}\nReads Analyzed: {}\n\n"\
             .format(__version__, self.run_start, run_stop, self.args.FASTQ1, self.args.FASTQ2, self.read_count, )
+
         summary_outstring += \
             "Index Name\tSample Name\tSample Replicate\tTarget\tTotal Found\tFraction Total\tPassing Read Filters\t" \
-            "Fraction Passing Filters\tNo 5' Anchor\tNo 3' Anchor\tBad Consensus\tNumber Filtered\tConsensus Fail\t" \
+            "Fraction Passing Filters\t{}Consensus Fail\t" \
             "{}\tTMEJ\tNormalized TMEJ\tNHEJ\tNormalized NHEJ\tNon-Microhomology Deletions\tNormalized Non-MH Del\t" \
             "Insertion >=5 +/- Deletions\tNormalized Insertion >=5+/- Deletions\tOther Scar Type\n"\
-            .format(sub_header)
+            .format(phasing_labels, sub_header)
 
         '''
         The data_list contains information for each library.  [0] index name; [1] reads passing all 
@@ -916,9 +951,16 @@ class DataProcessing:
             microhomology = data_list.summary_data[5]
             cut = passing_filters-data_list.summary_data[6][1]-data_list.summary_data[6][0]
             target = data_list.summary_data[9]
-            no_left_anchor = data_list.summary_data[10][0]
-            no_right_anchor = data_list.summary_data[10][1]
-            bad_ins = data_list.summary_data[10][2]
+            phase_key = "{}+{}".format(index_name, target)
+
+            phase_data = ""
+            for key in natsort.natsorted(self.phase_count[phase_key]):
+                phase_data += "{}\t".format(self.phase_count[phase_key][key]/library_read_count)
+
+            # For now I have left these three.  They do need to be removed at some point.
+            # no_left_anchor = data_list.summary_data[10][0]
+            # no_right_anchor = data_list.summary_data[10][1]
+            # bad_ins = data_list.summary_data[10][2]
             no_junction = data_list.summary_data[6][0]
 
             try:
@@ -926,7 +968,7 @@ class DataProcessing:
             except ZeroDivisionError:
                 cut_fraction = 'nan'
 
-            filtered = data_list.summary_data[7][0]
+            # filtered = data_list.summary_data[7][0]
             con_fail = data_list.summary_data[7][1]
             try:
                 tmej = data_list.summary_data[8][0]
@@ -951,12 +993,12 @@ class DataProcessing:
                 tmej_fraction = tmej / cut
 
             summary_outstring += \
-                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}" \
-                "\t{}\t{}\t{}\n"\
+                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t" \
+                "{}\t{}\n"\
                 .format(index_name, sample_name, sample_replicate, target, library_read_count, fraction_all_reads,
-                        passing_filters, fraction_passing, no_left_anchor, no_right_anchor, bad_ins, filtered, con_fail,
+                        passing_filters, fraction_passing, phase_data, con_fail,
                         no_junction, cut, cut_fraction, left_del, right_del, total_ins, microhomology,
-                        microhomology_fraction, tmej, tmej_fraction,nhej, nhej_fraction, non_microhomology_del,
+                        microhomology_fraction, tmej, tmej_fraction, nhej, nhej_fraction, non_microhomology_del,
                         non_mh_del_fraction, large_ins, large_ins_fraction, other_scar)
 
         summary_outstring += "\nUnidentified\t{}\t{}" \

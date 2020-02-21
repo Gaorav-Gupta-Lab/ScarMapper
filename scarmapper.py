@@ -19,7 +19,7 @@ from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FAS
 
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.10.0'
+__version__ = '0.11.1'
 __package__ = 'ScarMapper'
 
 
@@ -102,8 +102,11 @@ def main(command_line_args=None):
         fq1 = FASTQ_Tools.FASTQ_Reader(fastq_file1, log)
         fq2 = FASTQ_Tools.FASTQ_Reader(fastq_file2, log)
 
-        target_mapper = Target_Mapper.TargetMapper(log, args)
-        indel_processing = Indel_Processing.DataProcessing(log, args, run_start, fq1, fq2, target_mapper.targets)
+        # target_mapper = Target_Mapper.TargetMapper(log, args)
+
+        indel_processing = \
+            Indel_Processing.DataProcessing(log, args, run_start, Target_Mapper.TargetMapper(log, args), fq1, fq2)
+
         indel_processing.main_loop()
 
     elif not args.IndelProcessing:
