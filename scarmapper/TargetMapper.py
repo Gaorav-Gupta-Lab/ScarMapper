@@ -11,7 +11,7 @@ import Valkyries.Tool_Box as Tool_Box
 import pysam
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.9.0'
+__version__ = '0.10.0'
 __package__ = 'ScarMapper'
 
 
@@ -23,10 +23,29 @@ class TargetMapper:
         :param args:
         """
         self.target_data = Tool_Box.FileParser.indices(log, args.TargetFile)
+        self.phasing_data = Tool_Box.FileParser.indices(log, args.PrimerPhasingFile)
         # self.target_data = [x[0] for x in Tool_Box.FileParser.indices(log, args.TargetFile)]
         self.refseq = pysam.FastaFile(args.RefSeq)
         self.log = log
         self.args = args
+
+    @property
+    def phasing(self):
+        """
+        This will build and return a dictionary that contains the primer phasing information.
+        :return:
+        """
+
+        phasing_dict = collections.defaultdict(lambda: collections.defaultdict(list))
+        for row in self.phasing_data:
+            phase = row[0]
+            sequence = row[1]
+            read = row[2]
+            locus = row[3]
+            # key = "{}+{}".format(locus, phase)
+
+            phasing_dict[locus][read].append([sequence, phase])
+        return phasing_dict
 
     @property
     def targets(self):
@@ -39,10 +58,8 @@ class TargetMapper:
             locus_name = line[0]
             chromosome = line[1]
 
-            # Remove the first 10 nt of the primer.  Allows the experimental reads to be trimmed and anchored to the
-            # ends of target region easier.
-            start_pos = int(line[2])+10
-            stop_pos = int(line[3])-10
+            start_pos = int(line[2])
+            stop_pos = int(line[3])
 
             sgrna_seq = line[4].upper()
             rcomp = line[5].upper()
