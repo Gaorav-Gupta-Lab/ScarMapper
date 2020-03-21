@@ -1,2 +1,0 @@
-# TargetName	Chr	Start	Stop	sgRNA_Seq	ReverseComp	Comments
-Rosa26a	6	113075804	113076276	ACTCCAGTCTTTCTAGAAGA	Yes	This is our first target.

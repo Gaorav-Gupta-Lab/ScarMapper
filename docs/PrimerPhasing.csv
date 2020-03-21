@@ -1,6 +1,6 @@
-# These are the phased ScarMapper primers that are known to work as of Feburary 18, 2020.
+# These are the phased ScarMapper primers that are known to work as of Feburary 18,2020
 # Requires ScarMapper >= v0.11.0
-# Primer Phase	Nucleotides	Read	Locus
+# Primer Phase	Nucleotides	Read	Locus"
 F0	ACGAC	R1	AAVS1.2
 F1	CACGA	R1	AAVS1.2
 F2	CCACG	R1	AAVS1.2

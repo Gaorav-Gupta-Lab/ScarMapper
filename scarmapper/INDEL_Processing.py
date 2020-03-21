@@ -19,7 +19,7 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.11.1'
+__version__ = '0.11.2'
 __package__ = 'ScarMapper'
 
 
@@ -157,19 +157,7 @@ class ScarSearch:
         stop = int(self.target_dict[target_name][3])
         chrm = self.target_dict[target_name][1]
         sgrna = self.target_dict[target_name][4]
-
-        temp_region = refseq.fetch(chrm, start, stop)
-        # There is a single "T" insertion at position 138 of AAVS1.1 in our RPE cell line.
-        # We need to put that in the sequence.
-        # I think this is a sequencing artifact.
-        if self.args.Cell_Line == "hTERT_RPE-2" and target_name == "AAVS1.1":
-
-            for i, nt in enumerate(temp_region):
-                self.target_region += nt
-                if i == 138:
-                    self.target_region += "T"
-        else:
-            self.target_region = temp_region
+        self.target_region = refseq.fetch(chrm, start, stop)
 
         self.cutsite_search(target_name, sgrna, chrm, start, stop)
         self.window_mapping()
@@ -480,8 +468,9 @@ class ScarSearch:
         while not cutsite_found and rt_position < upper_limit:
             if self.target_region[lft_position:rt_position] == working_sgrna:
                 cutsite_found = True
+
                 if rcomp_sgrna:
-                    self.cutsite = lft_position+2
+                    self.cutsite = lft_position+3
                 else:
                     self.cutsite = rt_position-3
 
@@ -564,7 +553,7 @@ class DataProcessing:
         self.phase_dict = targeting.phasing
         self.phase_count = collections.defaultdict(lambda: collections.defaultdict(int))
         self.index_dict = self.dictionary_build()
-        self.refseq = pysam.FastaFile(args.RefSeq)
+        # self.refseq = pysam.FastaFile(args.RefSeq)
         self.results_dict = collections.defaultdict(list)
         self.sequence_dict = collections.defaultdict(list)
         self.read_count_dict = collections.defaultdict()
@@ -647,6 +636,8 @@ class DataProcessing:
                 for r2_phase, r1_phase in zip(self.phase_dict[locus]["R2"], self.phase_dict[locus]["R1"]):
                     r2_phase_name = r2_phase[1]
                     r1_phase_name = r1_phase[1]
+                    self.phase_count[phase_key]["Phase " + r1_phase_name] += 0
+                    self.phase_count[phase_key]["Phase " + r2_phase_name] += 0
 
                     if r2_phase[0] == left_seq[:len(r2_phase[0])] and not r2_found:
                         self.phase_count[phase_key]["Phase "+r2_phase_name] += 1
@@ -916,9 +907,11 @@ class DataProcessing:
         run_stop = datetime.datetime.today().strftime(self.date_format)
 
         phasing_labels = ""
-        for phase_key in self.phase_count:
-            for phase in natsort.natsorted(self.phase_count[phase_key]):
-                phasing_labels += "{}\t".format(phase)
+        phase_label_list = []
+        for locus in self.phase_count:
+            for phase_label in natsort.natsorted(self.phase_count[locus]):
+                phasing_labels += "{}\t".format(phase_label)
+                phase_label_list.append(phase_label)
             break
 
         summary_outstring = "ScarMapper {}\nStart: {}\nEnd: {}\nFASTQ1: {}\nFASTQ2: {}\nReads Analyzed: {}\n\n"\
@@ -954,8 +947,8 @@ class DataProcessing:
             phase_key = "{}+{}".format(index_name, target)
 
             phase_data = ""
-            for key in natsort.natsorted(self.phase_count[phase_key]):
-                phase_data += "{}\t".format(self.phase_count[phase_key][key]/library_read_count)
+            for phase in natsort.natsorted(self.phase_count[phase_key]):
+                phase_data += "{}\t".format(self.phase_count[phase_key][phase]/library_read_count)
 
             # For now I have left these three.  They do need to be removed at some point.
             # no_left_anchor = data_list.summary_data[10][0]
