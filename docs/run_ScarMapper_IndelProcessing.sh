@@ -1,5 +1,6 @@
 #!/bin/bash
 #Parameter file to run ScarMapper Pipeline
+#File generated 2020-03-21
 
 python3 /full/path/to/scarmapper.py --options_file /full/path/to/run_ScarMapper_IndelProcessins.sh
 exit
@@ -11,28 +12,20 @@ exit
 
 --RefSeq	/full/path/to/reference_sequence.fa
 --Master_Index_File	/full/path/to/Master_Index_File
---SampleManifest	/full/path/to/SampleManifest.txt
+--SampleManifest	/full/path/to/SampleManifest.csv
 --TargetFile	/full/path/to/Target_File.txt
+--PrimerPhasingFile	/full/path/to/PrimerPhasing.csv
 
---Working_Folder	/full/path/to/Working_Folder/
+--WorkingFolder	/full/path/to/Working_Folder/<Location of output files>
 
---Verbose	INFO
---Job_Name	# No spaces or special characters
---Spawn	3
---Demultiplex	False
+--Verbose	# INFO or DEBUG
+--Job_Name	# No spaces or special characters, prepended to output files.
+--Spawn	3 # How many parallel jobs?  Max should be n-1 threads or cpu's.  Minimum is 1.
+--Demultiplex	# True or False.  Write demultiplexed FASTQ files?
 --Species	# Mouse or Human
---Platform	# Illumina, Ion, Ramsden
+--Platform	# Illumina, Ramsden
 
 --N_Limit	0.01
 --Minimum_Length	100	# Length after trimming
 --OutputRawData	False # True or False.  Output raw data files.
 
-# This is to trim adapter sequences.  Will probably be removed.
---Atropos_Trim	False
---Anchored_Adapters_5p	/full/path/to/5'_anchored_adapters.fa
---Anchored_Adapters_3p	/full/path/to/3'_anchored_adapters.fa
---Atropos_Aligner	adapter
---NextSeq_Trim	1
---Adapter_Mismatch_Fraction	0.15
---Read_Queue_Size	500000
---Result_Queue_Size	100000

@@ -6,12 +6,14 @@
 @copyright: 2020
 """
 import datetime
+import glob
 import os
 import collections
 import subprocess
 import argparse
 import sys
 import time
+from scipy import stats
 from distutils.util import strtobool
 from scipy.stats import gmean
 from scarmapper import TargetMapper as Target_Mapper, INDEL_Processing as Indel_Processing
@@ -19,7 +21,7 @@ from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FAS
 
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.11.1'
+__version__ = '0.12.0'
 __package__ = 'ScarMapper'
 
 
@@ -76,7 +78,7 @@ def main(command_line_args=None):
         command_line_args = sys.argv
 
     run_start = datetime.datetime.today().strftime("%a %b %d %H:%M:%S %Y")
-    parser = argparse.ArgumentParser(description="A package to map genomic repair scars.\n {0} v{1}"
+    parser = argparse.ArgumentParser(description="A package to map genomic repair scars at defined loci.\n {0} v{1}"
                                      .format(__package__, __version__), formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('--options_file', action='store', dest='options_file', required=True,
@@ -96,13 +98,8 @@ def main(command_line_args=None):
         fastq_file1 = args.FASTQ1
         fastq_file2 = args.FASTQ2
 
-        # if args.Atropos_Trim:
-        #     fastq_file1, fastq_file2 = atropos_trim(args, log, "ScarMapper")
-
         fq1 = FASTQ_Tools.FASTQ_Reader(fastq_file1, log)
         fq2 = FASTQ_Tools.FASTQ_Reader(fastq_file2, log)
-
-        # target_mapper = Target_Mapper.TargetMapper(log, args)
 
         indel_processing = \
             Indel_Processing.DataProcessing(log, args, run_start, Target_Mapper.TargetMapper(log, args), fq1, fq2)
@@ -110,17 +107,18 @@ def main(command_line_args=None):
         indel_processing.main_loop()
 
     elif not args.IndelProcessing:
+        # Run frequency file Combine module
         log.info("Process Replicates.")
-        index_line_list = Tool_Box.FileParser.indices(log, args.SampleManifest)
         data_dict = collections.defaultdict(list)
+        file_list = [f for f in glob.glob("{}*ScarMapper_Frequency.txt".format(args.DataFiles, ))]
 
-        for sample_info in index_line_list:
-            # sample_name = sample_info[2]
-            index_name = sample_info[0]
-            file_name = "{}{}_{}_ScarMapper_Frequency.txt".format(args.DataFiles, args.Job_Name, index_name)
+        for file_name in file_list:
+            # index_name = sample_info[0]
+            # file_name = "{}{}_{}_ScarMapper_Frequency.txt".format(args.DataFiles, args.Job_Name, index_name)
             freq_file_data = Tool_Box.FileParser.indices(log, file_name)
+
             for row in freq_file_data:
-                key = "{}|{}|{}|{}".format(row[2], row[3], row[5], row[7])
+                key = "{}|{}|{}|{}".format(row[3], row[4], row[6], row[8])
                 row_data = row[2:]
 
                 if key in data_dict:
@@ -130,16 +128,18 @@ def main(command_line_args=None):
 
         # Process Data and Write Combined Frequency results file
         freq_results_outstring = \
-            "# Frequency\tLeft Deletions\tRight Deletions\tDeletion Size\tMicrohomology\tMicrohomology Size\t" \
-            "Insertion\tInsertion Size\tLeft Template\tRight Template\tConsensus Left Junction\t" \
+            "# Frequency\tSEM\tScar Type\tLeft Deletions\tRight Deletions\tDeletion Size\tMicrohomology\t" \
+            "Microhomology Size\tInsertion\tInsertion Size\tLeft Template\tRight Template\tConsensus Left Junction\t" \
             "Consensus Right Junction\tTarget Left Junction\tTarget Right Junction\tConsensus\tTarget Region\n"
         for key, row_list in data_dict.items():
             row_string = "\t".join(row_list[1])
             freq = gmean(row_list[0])
-            freq_results_outstring += "{}\t{}\n".format(freq, row_string)
+            sem = stats.sem(row_list[0])
+
+            freq_results_outstring += "{}\t{}\t{}\n".format(freq, sem, row_string)
 
         freq_results_file = \
-            open("{}{}_{}_ScarMapper_Frequency.txt".format(args.WorkingFolder, args.Job_Name, args.SampleName), "w")
+            open("{}{}_{}_ScarMapper_Combined_Frequency.txt".format(args.WorkingFolder, args.Job_Name, args.SampleName), "w")
 
         freq_results_file.write(freq_results_outstring)
         freq_results_file.close()
