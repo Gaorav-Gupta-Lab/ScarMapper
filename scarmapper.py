@@ -7,6 +7,7 @@
 """
 import datetime
 import glob
+import shutil
 import os
 import collections
 import subprocess
@@ -16,12 +17,19 @@ import time
 from scipy import stats
 from distutils.util import strtobool
 from scipy.stats import gmean
-from scarmapper import TargetMapper as Target_Mapper, INDEL_Processing as Indel_Processing
 from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FASTQ_Tools
 
+try:
+    # If the cythonized file doesn't exist then create it.
+    from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
+except ImportError:
+    setup_file = "python3 {0}{1}scarmapper{1}setup.py build_ext --inplace".format(os.path.dirname(__file__), os.sep)
+    os.chdir(os.path.dirname(__file__))
+    subprocess.run([setup_file], shell=True)
+    from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.12.0'
+__version__ = '0.13.0'
 __package__ = 'ScarMapper'
 
 
@@ -159,8 +167,6 @@ def error_checking(args):
     :return:
     :param args:
     """
-
-    # args = string_to_boolean(parser)
 
     if not os.path.exists(args.WorkingFolder):
         print("\033[1;31mERROR:\n\tWorking Folder Path: {} Not Found.  Check Options File."
