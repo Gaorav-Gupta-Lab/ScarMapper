@@ -7,7 +7,6 @@
 """
 import datetime
 import glob
-import shutil
 import os
 import collections
 import subprocess
