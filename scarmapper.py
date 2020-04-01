@@ -17,18 +17,40 @@ from scipy import stats
 from distutils.util import strtobool
 from scipy.stats import gmean
 from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FASTQ_Tools
+import re
 
-try:
-    # If the cythonized file doesn't exist then create it.
-    from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
-except ImportError:
+folder_content = os.listdir("{0}{1}scarmapper{1}".format(os.path.dirname(__file__), os.sep))
+regex_pattern = "SlidingWindow.cpython.*\.so"
+regex = re.compile(regex_pattern)
+cfile = ""
+old_file = False
+for f in folder_content:
+    if regex.search(f):
+        cfile = f
+        break
+if cfile:
+    compiled_time = \
+        time.ctime(os.path.getctime("{0}{1}scarmapper{1}{2}".format(os.path.dirname(__file__), os.sep, cfile)))
+    pyx_module_time = \
+        time.ctime(os.path.getctime("{0}{1}scarmapper{1}SlidingWindow.pyx".
+                                    format(os.path.dirname(__file__), os.sep)))
+
+    if pyx_module_time > compiled_time:
+        old_file = True
+
+if not cfile or old_file:
+    print("Compilied Module Doesn't Exist or is Old; Compiling Module")
     setup_file = "python3 {0}{1}scarmapper{1}setup.py build_ext --inplace".format(os.path.dirname(__file__), os.sep)
     os.chdir(os.path.dirname(__file__))
     subprocess.run([setup_file], shell=True)
-    from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
+    # The sleep is to allow for network or disk latency.
+    time.sleep(5.0)
+
+from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
+
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.13.0'
+__version__ = '0.14.0'
 __package__ = 'ScarMapper'
 
 

@@ -149,13 +149,18 @@ class ScarSearch:
         refseq = pysam.FastaFile(self.args.RefSeq)
 
         try:
+            # Get the genomic 5' coordinate of the reference target region.
             start = int(self.target_dict[target_name][2])
         except IndexError:
             self.log.error("Target file incorrectly formatted for {}".format(target_name))
             return
 
+        # Get the genomic 3' coordinate of the reference target region.
         stop = int(self.target_dict[target_name][3])
+
         chrm = self.target_dict[target_name][1]
+
+        # Get the sequence of the sgRNA.
         sgrna = self.target_dict[target_name][4]
         self.target_region = refseq.fetch(chrm, start, stop)
 
@@ -165,6 +170,7 @@ class ScarSearch:
         start_time = time.time()
         split_time = start_time
 
+        # Extract and process read 1 and read 2 from our list of sequences.
         for seq in self.sequence_list:
             loop_count += 1
 
@@ -176,7 +182,7 @@ class ScarSearch:
 
             if self.fastq:
                 left_seq, right_seq = seq
-                left_block_found = right_block_found = True
+                # left_block_found = right_block_found = True
                 # left_block_found, left_seq = self.trim_phasing(left_seq, left_read=True)
                 # right_block_found, right_seq = self.trim_phasing(right_seq, left_read=False)
                 #
@@ -193,11 +199,10 @@ class ScarSearch:
                 #     self.gapped_aligner(">left\n{}\n>right\n{}\n"
                 #                         .format(left_seq, Sequence_Magic.rcomp(right_seq)))
 
-                consensus_seq = ''
-                if left_block_found and right_block_found:
-                    consensus_seq = self.simple_consensus(left_seq, right_seq)
+                consensus_seq = self.simple_consensus(left_seq, right_seq)
 
             else:
+                # This is for those people that want to feed in consensus sequences generated elsewhere.
                 consensus_seq = seq
 
             # Consensus sequence creation failed.
@@ -218,8 +223,8 @@ class ScarSearch:
             '''
             The summary_data list contains information for a single library.  [0] index name; [1] reads passing all 
             filters; [2] reads with a left junction; [3] reads with a right junction; [4] reads with an insertion;
-            [5] reads with microhomology; [6] reads with no identifiable cut; [7] filtered reads; [8] junction_type_data;
-            [9] List; [5, 3' unanchorable ends, bad insertions]
+            [5] reads with microhomology; [6] reads with no identifiable cut; [7] filtered reads; 
+            [8] junction_type_data; [9] List; [5, 3' unanchored ends, bad insertions]
 
             The junction_type_data list contains the repair type category counts.  [0] TMEJ, del_size >= 4 and 
             microhomology_size >= 2; [1] NHEJ, del_size < 4 and ins_size < 5; [2] insertions >= 5 
@@ -228,8 +233,10 @@ class ScarSearch:
             '''
             # count reads that pass the read filters
             self.summary_data[1] += 1
+
+            # The cutwindow is used to filter out false positives.
             cutwindow = self.target_region[self.cutsite-4:self.cutsite+4]
-            # Tool_Box.debug_messenger([self.target_region, consensus_seq])
+
             sub_list, self.summary_data = \
                 SlidingWindow.sliding_window(consensus_seq, self.target_region, self.cutsite, self.target_length,
                                              self.lower_limit, self.upper_limit, self.summary_data,
@@ -607,14 +614,6 @@ class DataProcessing:
                 eof = True
                 continue
 
-            # # I removed this because it only applied to Ion and we no longer use Ion for this technique
-            # if len(fastq1_read.seq) < int(self.args.Minimum_Length):
-            #     # fastq1_short_count += 1
-            #     continue
-            # elif len(fastq2_read.seq) < int(self.args.Minimum_Length):
-            #     # fastq2_short_count += 1
-            #     continue
-
             self.read_count += 1
             if self.read_count % 100000 == 0:
                 elapsed_time = int(time.time() - start_time)
@@ -654,7 +653,7 @@ class DataProcessing:
                     self.phase_count[phase_key]["No Read 1 Phasing"] += 1
 
                 if self.args.Platform == "Illumina":
-                    # The error on the last 5 nt from iSeq runs is huge.  This trims those off.
+                    # The error on the last few nt from iSeq runs is huge.  This trims those off.
                     lseq = left_seq[:-3]
                     rseq = right_seq[:-3]
 
