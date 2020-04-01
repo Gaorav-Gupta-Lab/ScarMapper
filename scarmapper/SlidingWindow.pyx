@@ -1,17 +1,17 @@
 # cython: language_level=3
 
 """
-Cython version of Sliding Window def.
+Cython version of Sliding Window Module
 
 
- __version__ = "0.2.0"
+ __version__ = "0.3.0"
 
 @author: Dennis A. Simpson
           University of North Carolina
           Lineberger Comprehensive Cancer Center
           450 West Drive
           Chapel Hill, NC  27599-7295
-@copyright: 2019
+@copyright: 2020
 
 """
 
@@ -41,26 +41,22 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
     end of the read one nucleotide at a time using a 10 nucleotide sliding window.  The 3' position of
     the first perfect match of the window from the query and target defines the 5' junction.
     '''
-    padding = 25
-    # consensus_rt_position = cutsite+padding
-    consensus_rt_position = consensus_length
+
+    consensus_rt_position = consensus_length-10
     consensus_lft_position = consensus_rt_position-10
 
     while not left_found and consensus_lft_position > lower_limit:
         query_segment = consensus[consensus_lft_position:consensus_rt_position]
         for i, target_segment in enumerate(left_target_windows):
             if query_segment == target_segment:
-                query_cutwindow = consensus[consensus_lft_position+6:consensus_rt_position+4]
+                query_cutwindow = consensus[consensus_lft_position:consensus_rt_position]
 
                 if query_cutwindow == cutwindow:
                     summary_data[6][1] += 1
                     return [], summary_data
 
-                # rt_position = cutsite-i
                 left_found = True
                 target_lft_junction = cutsite-i
-                # target_lft_junction = rt_position
-                # consensus_lft_junction = rt_position
                 consensus_lft_junction = consensus_rt_position
                 ldel = target_region[target_lft_junction:cutsite]
                 break
@@ -76,14 +72,12 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
     '''
 
     # Move to the expected cutsite position on the consensus from the 3' end.
-    # consensus_lft_position = consensus_length-(target_length-cutsite)-padding
-    consensus_lft_position = 0
+    consensus_lft_position = 10
     consensus_rt_position = consensus_lft_position+10
     while not right_found and consensus_rt_position < upper_consensus_limit:
         query_segment = consensus[consensus_lft_position:consensus_rt_position]
         for i, target_segment in enumerate(right_target_windows):
             if query_segment == target_segment:
-                # lft_position = cutsite+i
                 right_found = True
                 target_rt_junction = cutsite+i
                 consensus_rt_junction = consensus_lft_position
