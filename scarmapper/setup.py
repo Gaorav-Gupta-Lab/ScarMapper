@@ -9,5 +9,7 @@ slidingwindow_file = '{0}{1}SlidingWindow.pyx'.format(os.path.dirname(__file__),
 
 setup(
     name="ScarMapper Sliding Window",
+    author='Dennis Simpson',
+    author_email='dennis@email.unc.edu',
     ext_modules=cythonize(slidingwindow_file, annotate=True)
 )

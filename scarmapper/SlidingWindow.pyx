@@ -4,8 +4,6 @@
 Cython version of Sliding Window Module
 
 
- __version__ = "0.3.0"
-
 @author: Dennis A. Simpson
           University of North Carolina
           Lineberger Comprehensive Cancer Center
@@ -15,12 +13,16 @@ Cython version of Sliding Window Module
 
 """
 
+__version__ = "0.5.0"
+
 cpdef sliding_window(str consensus, str target_region, int cutsite, int target_length, int lower_limit, int upper_limit,
-                     object summary_data, list left_target_windows, list right_target_windows, str cutwindow):
+                     object summary_data, list left_target_windows, list right_target_windows, str cutwindow,
+                     str hr_donor):
 
     cdef int consensus_length = len(consensus)
     cdef int consensus_lft_junction = 0
     cdef int consensus_rt_junction = 0
+    cdef int offset = 15
     cdef double upper_consensus_limit = consensus_length-15
     cdef str ldel, rdel, lft_test, rt_test
 
@@ -93,6 +95,34 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
         summary_data[6][0] += 1
         return [], summary_data
 
+    # If requested, do a search for HR Donor
+    if hr_donor:
+        rt_position = len(hr_donor)+25
+        lft_position = 25
+        donor_found = False
+        while rt_position < len(consensus)-25:
+            query_window = consensus[lft_position:rt_position]
+            if query_window == hr_donor and not donor_found:
+                summary_data[10][0]+=1
+                donor_found = True
+            elif query_window == hr_donor and donor_found:
+                summary_data[10][1]+=1
+            rt_position+=1
+            lft_position+=1
+
+        # If HR Donor is found then find but do not score INDELS
+        if donor_found:
+            # extract the insertion
+            consensus_insertion = ""
+            if 0 < consensus_lft_junction < consensus_rt_junction:
+                consensus_insertion = consensus[consensus_lft_junction:consensus_rt_junction]
+
+            consensus_microhomology = ""
+            if consensus_lft_junction > consensus_rt_junction > 0:
+                consensus_microhomology = consensus[consensus_rt_junction:consensus_lft_junction]
+
+            return [ldel, rdel, consensus_insertion, consensus_microhomology, consensus, consensus_lft_junction, consensus_rt_junction, target_lft_junction, target_rt_junction, "HR"], summary_data
+
     # extract the insertion
     consensus_insertion = ""
     if 0 < consensus_lft_junction < consensus_rt_junction:
@@ -100,7 +130,6 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
 
         # If there is an N in the insertion then don't include read in the analysis.
         if "N" in consensus_insertion:
-            summary_data[10][2] += 1
             return [], summary_data
 
         cut_found = True
@@ -130,4 +159,5 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
         summary_data[6][1] += 1
         return [], summary_data
 
-    return [ldel, rdel, consensus_insertion, consensus_microhomology, consensus, consensus_lft_junction, consensus_rt_junction, target_lft_junction, target_rt_junction], summary_data
+
+    return [ldel, rdel, consensus_insertion, consensus_microhomology, consensus, consensus_lft_junction, consensus_rt_junction, target_lft_junction, target_rt_junction, ""], summary_data

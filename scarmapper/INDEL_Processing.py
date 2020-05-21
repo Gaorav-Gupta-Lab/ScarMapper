@@ -106,14 +106,15 @@ class ScarSearch:
         rt_seq = Sequence_Magic.rcomp(right_seq)
         right_limit = len(right_seq) - 25
         left_limit = 25
-        left_position = len(left_seq) - 5
+        window_size = 7
+        left_position = len(left_seq) - window_size
         right_position = len(left_seq)
         consensus_seq = ""
 
         while left_position > left_limit and not consensus_seq:
             left_block = left_seq[left_position:right_position]
             lft_position = 0
-            rt_position = 5
+            rt_position = window_size
 
             while rt_position < right_limit and not consensus_seq:
                 test_window = rt_seq[lft_position:rt_position]
@@ -138,11 +139,11 @@ class ScarSearch:
 
         self.log.info("Begin Processing {}".format(self.index_name))
         """
-        Summary List: index_name, total aberrant, left deletions, right deletions, total deletions, left insertions, 
+        Summary_Data List: index_name, total aberrant, left deletions, right deletions, total deletions, left insertions, 
         right insertions, total insertions, microhomology, number filtered, target_name
         """
         target_name = self.index_dict[self.index_name][7]
-        self.summary_data = [self.index_name, 0, 0, 0, 0, 0, [0, 0], [0, 0], 0, target_name, [0, 0, 0]]
+        self.summary_data = [self.index_name, 0, 0, 0, 0, 0, [0, 0], [0, 0], 'junction data', target_name, [0, 0]]
         junction_type_data = [0, 0, 0, 0, 0]
         read_results_list = []
         results_freq_dict = collections.defaultdict(list)
@@ -182,18 +183,6 @@ class ScarSearch:
 
             if self.fastq:
                 left_seq, right_seq = seq
-                # left_block_found = right_block_found = True
-                # left_block_found, left_seq = self.trim_phasing(left_seq, left_read=True)
-                # right_block_found, right_seq = self.trim_phasing(right_seq, left_read=False)
-                #
-                # # Count sequences that don't have a 5' anchor.
-                # if not left_block_found:
-                #     self.summary_data[10][0] += 1
-                #
-                # # Count sequences that don't have a 3' anchor.
-                # if not right_block_found:
-                #     self.summary_data[10][1] += 1
-
                 # Muscle will not properly gap sequences with an overlap smaller than about 50 nucleotides.
                 # consensus_seq = \
                 #     self.gapped_aligner(">left\n{}\n>right\n{}\n"
@@ -216,17 +205,18 @@ class ScarSearch:
                 continue
 
             # No need to analyze sequences that are too short.
-            if len(consensus_seq) <= 1*self.lower_limit:
+            if len(consensus_seq) <= int(self.args.Minimum_Length):
                 self.summary_data[7][0] += 1
                 continue
 
             '''
             The summary_data list contains information for a single library.  [0] index name; [1] reads passing all 
-            filters; [2] reads with a left junction; [3] reads with a right junction; [4] reads with an insertion;
-            [5] reads with microhomology; [6] reads with no identifiable cut; [7] filtered reads; 
-            [8] junction_type_data; [9] List; [5, 3' unanchored ends, bad insertions]
+            filters; [2] left junction count; [3] right junction count; [4] insertion count; [5] microhomology count; 
+            [6] [No junction count, no cut count]; [7] [consensus N + short filtered count, failed consensus 
+            creation count]; [8] junction_type_data list; [9] target name; 10 [HR left junction count, HR right 
+            junction count]
 
-            The junction_type_data list contains the repair type category counts.  [0] TMEJ, del_size >= 4 and 
+            The junction_type_data list contains the repair type category counts.  [0] TsEJ, del_size >= 4 and 
             microhomology_size >= 2; [1] NHEJ, del_size < 4 and ins_size < 5; [2] insertions >= 5 
             [3] Junctions with scars not represented by the other categories; [4] Non-MH Deletions, del_size >= 4 and 
             microhomology_size < 2 and ins_size < 5
@@ -238,9 +228,10 @@ class ScarSearch:
             cutwindow = self.target_region[self.cutsite-4:self.cutsite+4]
 
             sub_list, self.summary_data = \
-                SlidingWindow.sliding_window(consensus_seq, self.target_region, self.cutsite, self.target_length,
-                                             self.lower_limit, self.upper_limit, self.summary_data,
-                                             self.left_target_windows, self.right_target_windows, cutwindow)
+                SlidingWindow.sliding_window(
+                    consensus_seq, self.target_region, self.cutsite, self.target_length, self.lower_limit,
+                    self.upper_limit, self.summary_data, self.left_target_windows, self.right_target_windows, cutwindow,
+                    self.args.HR_Donor)
 
             '''
             The sub_list holds the data for a single consensus read.  These data are [left deletion, right deletion, 
@@ -250,7 +241,7 @@ class ScarSearch:
 
             if sub_list:
                 read_results_list.append(sub_list)
-                freq_key = "{}|{}|{}|{}".format(sub_list[0], sub_list[1], sub_list[2], sub_list[3])
+                freq_key = "{}|{}|{}|{}|{}".format(sub_list[0], sub_list[1], sub_list[2], sub_list[3], sub_list[9])
 
             else:
                 continue
@@ -327,10 +318,14 @@ class ScarSearch:
                 template_lft_junction = len(self.target_region)-template_rt_junction
                 template_rt_junction = len(self.target_region)-tmp_target_lft
 
+            # HR counts
+            if results_freq_dict[freq_key][1][9] == "HR":
+                scar_type = "HR"
+
             # TMEJ counts
-            if del_size >= 4 and microhomology_size >= 2:
+            elif del_size >= 4 and microhomology_size >= 2:
                 junction_type_data[0] += key_count
-                scar_type = "TMEJ"
+                scar_type = "TsEJ"
 
             # NHEJ counts
             elif del_size < 4 and ins_size < 5:
@@ -560,7 +555,6 @@ class DataProcessing:
         self.phase_dict = targeting.phasing
         self.phase_count = collections.defaultdict(lambda: collections.defaultdict(int))
         self.index_dict = self.dictionary_build()
-        # self.refseq = pysam.FastaFile(args.RefSeq)
         self.results_dict = collections.defaultdict(list)
         self.sequence_dict = collections.defaultdict(list)
         self.read_count_dict = collections.defaultdict()
@@ -627,44 +621,39 @@ class DataProcessing:
                 self.index_matching(fastq1_read, fastq2_read)
 
             if match_found:
-                # Now that a match has been found the first order of business is to score the phasing.
                 locus = self.index_dict[index_name][7]
                 phase_key = "{}+{}".format(index_name, locus)
                 r2_found = False
                 r1_found = False
-                for r2_phase, r1_phase in zip(self.phase_dict[locus]["R2"], self.phase_dict[locus]["R1"]):
-                    r2_phase_name = r2_phase[1]
-                    r1_phase_name = r1_phase[1]
-                    self.phase_count[phase_key]["Phase " + r1_phase_name] += 0
-                    self.phase_count[phase_key]["Phase " + r2_phase_name] += 0
-
-                    if r2_phase[0] == left_seq[:len(r2_phase[0])] and not r2_found:
-                        self.phase_count[phase_key]["Phase "+r2_phase_name] += 1
-                        r2_found = True
-
-                    if r1_phase[0] == right_seq[:len(r1_phase[0])] and not r1_found:
-                        self.phase_count[phase_key]["Phase "+r1_phase_name] += 1
-                        r1_found = True
-
-                # if no phasing is found then note that.
-                if not r2_found:
-                    self.phase_count[phase_key]["No Read 2 Phasing"] += 1
-                if not r1_found:
-                    self.phase_count[phase_key]["No Read 1 Phasing"] += 1
-
                 if self.args.Platform == "Illumina":
-                    # The error on the last few nt from iSeq runs is huge.  This trims those off.
-                    lseq = left_seq[:-3]
-                    rseq = right_seq[:-3]
+                    # Score the phasing and place the reads in a dictionary.
+                    for r2_phase, r1_phase in zip(self.phase_dict[locus]["R2"], self.phase_dict[locus]["R1"]):
+                        r2_phase_name = r2_phase[1]
+                        r1_phase_name = r1_phase[1]
+                        self.phase_count[phase_key]["Phase " + r1_phase_name] += 0
+                        self.phase_count[phase_key]["Phase " + r2_phase_name] += 0
+
+                        if r2_phase[0] == left_seq[:len(r2_phase[0])] and not r2_found:
+                            self.phase_count[phase_key]["Phase "+r2_phase_name] += 1
+                            r2_found = True
+
+                        if r1_phase[0] == right_seq[:len(r1_phase[0])] and not r1_found:
+                            self.phase_count[phase_key]["Phase "+r1_phase_name] += 1
+                            r1_found = True
+                    # if no phasing is found then note that.
+                    if not r2_found:
+                        self.phase_count[phase_key]["No Read 2 Phasing"] += 1
+                    if not r1_found:
+                        self.phase_count[phase_key]["No Read 1 Phasing"] += 1
 
                     # The adapters on AAVS1.1 are reversed causing the reads to be reversed.
                     if locus == "AAVS1.1":
-                        self.sequence_dict[index_name].append([lseq, rseq])
+                        self.sequence_dict[index_name].append([left_seq, right_seq])
                     else:
-                        self.sequence_dict[index_name].append([rseq, lseq])
+                        self.sequence_dict[index_name].append([right_seq, left_seq])
 
                 elif self.args.Platform == "Ramsden":
-                    self.sequence_dict[index_name].append([lseq, rseq])
+                    self.sequence_dict[index_name].append([left_seq, right_seq])
                 else:
                     self.log.error("--Platform {} not defined.  Edit parameter file and try again"
                                    .format(self.args.Platform))
@@ -707,7 +696,7 @@ class DataProcessing:
         self.log.info("Spawning {} Jobs to Process {} Libraries".format(self.args.Spawn, len(self.sequence_dict)))
         p = pathos.multiprocessing.Pool(int(self.args.Spawn))
 
-        # My solution for passing key:value pairs to through the multiprocessor.  Largest value group goes first.
+        # My solution for passing key:value pairs to the multiprocessor.  Largest value group goes first.
         data_list = []
         for key in sorted(self.sequence_dict, key=lambda k: len(self.sequence_dict[k]), reverse=True):
             data_list.append([self.log, self.args, self.target_dict, self.index_dict, True, key,
@@ -765,6 +754,11 @@ class DataProcessing:
                 self.log.error("Sample Manifest is missing Target Name column")
                 raise SystemExit(1)
 
+            left_index_sequence, right_index_sequence = master_index_dict[index_name]
+            index_dict[index_name] = \
+                [right_index_sequence.upper(), 0, left_index_sequence.upper(), 0, index_name, sample_name,
+                 sample_replicate, target_name]
+            '''
             if self.args.Platform == "Illumina":
                 left_index_sequence, right_index_sequence = master_index_dict[index_name]
                 index_dict[index_name] = \
@@ -788,9 +782,9 @@ class DataProcessing:
                      left_index_len, index_name, sample_name, sample_replicate, target_name]
 
             else:
-                self.log.error("Only 'Illumina' or 'Ramsden' --Platform methods allowed.")
+                self.log.error("Only 'Illumina' or 'Ramsden' --Platform methods currently allowed.")
                 raise SystemExit(1)
-
+            '''
             if self.args.Demultiplex:
                 r1 = FASTQ_Tools.Writer(self.log, "{}{}_{}_R1.fastq"
                                         .format(self.args.WorkingFolder, self.args.Job_Name, index_name))
@@ -852,36 +846,36 @@ class DataProcessing:
         left_seq = ""
         right_seq = ""
         index_key = 'unidentified'
+        mismatch = 1
+        if self.args.Platform == "Ramsden":
+            mismatch = 3
 
         for index_key in self.index_dict:
             left_index = self.index_dict[index_key][0]
             right_index = self.index_dict[index_key][2]
-            left_trim = self.index_dict[index_key][1]
-            right_trim = self.index_dict[index_key][3]
+            # left_trim = self.index_dict[index_key][1]
+            # right_trim = self.index_dict[index_key][3]
 
             if self.args.Platform == "Illumina":
                 # The indices are after the last ":" in the header.
-                # index_query = "{}+{}".format(right_index, left_index)
                 right_match = Sequence_Magic.match_maker(right_index, fastq2_read.name.split(":")[-1].split("+")[0])
                 left_match = Sequence_Magic.match_maker(left_index, fastq2_read.name.split(":")[-1].split("+")[1])
 
             elif self.args.Platform == "Ramsden":
-                left_match = Sequence_Magic.match_maker(left_index, fastq2_read.seq[:len(left_index)])
+                left_match = Sequence_Magic.match_maker(Sequence_Magic.rcomp(left_index), fastq2_read.seq[:len(left_index)])
                 right_match = Sequence_Magic.match_maker(right_index, fastq1_read.seq[:len(right_index)])
 
             if index_key not in self.read_count_dict:
                 self.read_count_dict[index_key] = 0
 
-            if left_match <= 1 and right_match <= 1:
+            if left_match <= mismatch and right_match <= mismatch:
                 self.read_count_dict[index_key] += 1
                 match_found = True
 
             if match_found:
-                # Trim the staggered nucleotides from the ends of the reads and pull the left and right sequence.
-                FASTQ_Tools.read_trim(fastq2_read, trim5=left_trim)
-                FASTQ_Tools.read_trim(fastq1_read, trim5=right_trim)
-                left_seq = fastq2_read.seq
-                right_seq = fastq1_read.seq
+                # iSeq runs generally have low quality reads on the 3' ends.  This does a blanket trim to remove them.
+                left_seq = fastq2_read.seq[:-5]
+                right_seq = fastq1_read.seq[:-5]
                 break
 
         if not match_found:
@@ -901,8 +895,8 @@ class DataProcessing:
 
         summary_file = open("{}{}_ScarMapper_Summary.txt".format(self.args.WorkingFolder, self.args.Job_Name), "w")
         sub_header = \
-            "No Junction\tScar Count\tScar Fraction\tLeft Deletion Count\tRight Deletion Count\tInsertion Count\t" \
-            "Microhomology Count\tNormalized Microhomology"
+            "No Junction\tScar Count\tScar Fraction\tHR Count\tHR Fraction\tLeft Deletion Count\tRight Deletion Count\t" \
+            "Insertion Count\tMicrohomology Count\tNormalized Microhomology"
         run_stop = datetime.datetime.today().strftime(self.date_format)
 
         phasing_labels = ""
@@ -919,7 +913,7 @@ class DataProcessing:
         summary_outstring += \
             "Index Name\tSample Name\tSample Replicate\tTarget\tTotal Found\tFraction Total\tPassing Read Filters\t" \
             "Fraction Passing Filters\t{}Consensus Fail\t" \
-            "{}\tTMEJ\tNormalized TMEJ\tNHEJ\tNormalized NHEJ\tNon-Microhomology Deletions\tNormalized Non-MH Del\t" \
+            "{}\tTsEJ\tNormalized TsEJ\tNHEJ\tNormalized NHEJ\tNon-Microhomology Deletions\tNormalized Non-MH Del\t" \
             "Insertion >=5 +/- Deletions\tNormalized Insertion >=5+/- Deletions\tOther Scar Type\n"\
             .format(phasing_labels, sub_header)
 
@@ -949,19 +943,18 @@ class DataProcessing:
             for phase in natsort.natsorted(self.phase_count[phase_key]):
                 phase_data += "{}\t".format(self.phase_count[phase_key][phase]/library_read_count)
 
-            # For now I have left these three.  They do need to be removed at some point.
-            # no_left_anchor = data_list.summary_data[10][0]
-            # no_right_anchor = data_list.summary_data[10][1]
-            # bad_ins = data_list.summary_data[10][2]
             no_junction = data_list.summary_data[6][0]
+            con_fail = data_list.summary_data[7][1]
 
             try:
                 cut_fraction = cut/passing_filters
             except ZeroDivisionError:
                 cut_fraction = 'nan'
 
-            # filtered = data_list.summary_data[7][0]
-            con_fail = data_list.summary_data[7][1]
+            # Process HR data
+            hr_count = data_list.summary_data[10]
+            hr_frequency = sum(data_list.summary_data[10])/passing_filters
+
             try:
                 tmej = data_list.summary_data[8][0]
             except TypeError:
@@ -986,12 +979,12 @@ class DataProcessing:
 
             summary_outstring += \
                 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t" \
-                "{}\t{}\n"\
+                "{}\t{}\t{}\n"\
                 .format(index_name, sample_name, sample_replicate, target, library_read_count, fraction_all_reads,
                         passing_filters, fraction_passing, phase_data, con_fail,
-                        no_junction, cut, cut_fraction, left_del, right_del, total_ins, microhomology,
-                        microhomology_fraction, tmej, tmej_fraction, nhej, nhej_fraction, non_microhomology_del,
-                        non_mh_del_fraction, large_ins, large_ins_fraction, other_scar)
+                        no_junction, cut, cut_fraction, hr_count, hr_frequency, left_del, right_del, total_ins,
+                        microhomology, microhomology_fraction, tmej, tmej_fraction, nhej, nhej_fraction,
+                        non_microhomology_del, non_mh_del_fraction, large_ins, large_ins_fraction, other_scar)
 
         summary_outstring += "\nUnidentified\t{}\t{}" \
             .format(self.read_count_dict["unidentified"], self.read_count_dict["unidentified"] / self.read_count)
