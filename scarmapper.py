@@ -30,16 +30,15 @@ for f in folder_content:
         break
 if cfile:
     compiled_time = \
-        time.ctime(os.path.getctime("{0}{1}scarmapper{1}{2}".format(os.path.dirname(__file__), os.sep, cfile)))
+        os.path.getmtime("{0}{1}scarmapper{1}{2}".format(os.path.dirname(__file__), os.sep, cfile))
     pyx_module_time = \
-        time.ctime(os.path.getctime("{0}{1}scarmapper{1}SlidingWindow.pyx".
-                                    format(os.path.dirname(__file__), os.sep)))
+        os.path.getmtime("{0}{1}scarmapper{1}SlidingWindow.pyx".format(os.path.dirname(__file__), os.sep))
 
     if pyx_module_time > compiled_time:
         old_file = True
 
 if not cfile or old_file:
-    print("Compilied Module Doesn't Exist or is Old; Compiling Module")
+    print("Compiled Module Doesn't Exist or is Old; Compiling Module")
     setup_file = "python3 {0}{1}scarmapper{1}setup.py build_ext --inplace".format(os.path.dirname(__file__), os.sep)
     os.chdir(os.path.dirname(__file__))
     subprocess.run([setup_file], shell=True)
@@ -50,7 +49,7 @@ from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Tar
 
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.14.0'
+__version__ = '0.15.0'
 __package__ = 'ScarMapper'
 
 
@@ -123,17 +122,21 @@ def main(command_line_args=None):
     log.info("{} v{}".format(__package__, __version__))
 
     if args.IndelProcessing:
-        log.info("Sending FASTQ files to FASTQ preprocessor.")
-        fastq_file1 = args.FASTQ1
-        fastq_file2 = args.FASTQ2
+        if args.Platform == "Illumina" or args.Platform == "Ramsden":
+            log.info("Sending FASTQ files to FASTQ preprocessor.")
+            fastq_file1 = args.FASTQ1
+            fastq_file2 = args.FASTQ2
 
-        fq1 = FASTQ_Tools.FASTQ_Reader(fastq_file1, log)
-        fq2 = FASTQ_Tools.FASTQ_Reader(fastq_file2, log)
+            fq1 = FASTQ_Tools.FASTQ_Reader(fastq_file1, log)
+            fq2 = FASTQ_Tools.FASTQ_Reader(fastq_file2, log)
 
-        indel_processing = \
-            Indel_Processing.DataProcessing(log, args, run_start, Target_Mapper.TargetMapper(log, args), fq1, fq2)
+            indel_processing = \
+                Indel_Processing.DataProcessing(log, args, run_start, Target_Mapper.TargetMapper(log, args), fq1, fq2)
 
-        indel_processing.main_loop()
+            indel_processing.main_loop()
+        else:
+            log.error("Only 'Illumina' or 'Ramsden' --Platform methods currently allowed.")
+            raise SystemExit(1)
 
     elif not args.IndelProcessing:
         # Run frequency file Combine module
@@ -168,7 +171,8 @@ def main(command_line_args=None):
             freq_results_outstring += "{}\t{}\t{}\n".format(freq, sem, row_string)
 
         freq_results_file = \
-            open("{}{}_{}_ScarMapper_Combined_Frequency.txt".format(args.WorkingFolder, args.Job_Name, args.SampleName), "w")
+            open("{}{}_{}_ScarMapper_Combined_Frequency.txt"
+                 .format(args.WorkingFolder, args.Job_Name, args.SampleName), "w")
 
         freq_results_file.write(freq_results_outstring)
         freq_results_file.close()
