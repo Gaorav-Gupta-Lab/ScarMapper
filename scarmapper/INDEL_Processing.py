@@ -19,14 +19,16 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.11.2'
+__version__ = '0.16.0'
 __package__ = 'ScarMapper'
 
 
 class ScarSearch:
-    def __init__(self, log, args, target_dict, index_dict, fastq, index_name, sequence_list):
+    def __init__(self, log, args, version, run_start, target_dict, index_dict, fastq, index_name, sequence_list):
         self.log = log
         self.args = args
+        self.version = version
+        self.run_start = run_start
         self.target_dict = target_dict
         self.index_dict = index_dict
         self.index_name = index_name
@@ -34,13 +36,18 @@ class ScarSearch:
         self.fastq = fastq
         self.summary_data = None
         self.target_region = ""
-        self.sgrna = None
+        # self.sgrna = None
         self.cutsite = None
         self.lower_limit = None
         self.upper_limit = None
         self.target_length = None
         self.left_target_windows = []
         self.right_target_windows = []
+
+        if self.target_dict[index_dict[index_name][7]][5] == "YES":
+            self.hr_donor = Sequence_Magic.rcomp(args.HR_Donor)
+        else:
+            self.hr_donor = args.HR_Donor
         self.data_processing()
 
     def window_mapping(self):
@@ -231,7 +238,7 @@ class ScarSearch:
                 SlidingWindow.sliding_window(
                     consensus_seq, self.target_region, self.cutsite, self.target_length, self.lower_limit,
                     self.upper_limit, self.summary_data, self.left_target_windows, self.right_target_windows, cutwindow,
-                    self.args.HR_Donor)
+                    self.hr_donor)
 
             '''
             The sub_list holds the data for a single consensus read.  These data are [left deletion, right deletion, 
@@ -262,6 +269,29 @@ class ScarSearch:
 
         return self.summary_data
 
+    def common_page_header(self, index_name):
+        """
+        Generates common page header for frequency and raw data files.
+        :param index_name:
+        :return:
+        """
+        date_format = "%a %b %d %H:%M:%S %Y"
+        run_stop = datetime.datetime.today().strftime(date_format)
+        target_name = self.index_dict[index_name][7]
+        sgrna = self.target_dict[target_name][4]
+        sample_name = "{}.{}".format(self.index_dict[index_name][5], self.index_dict[index_name][6])
+
+        hr_donor = ""
+        if self.args.HR_Donor:
+            hr_donor = "# HR Donor: {}\n".format(self.args.HR_Donor)
+
+        page_header = \
+            "# ScarMapper Search v{}\n# Run Start: {}\n# Run End: {}\n# Sample Name: {}\n# Locus Name: {}\n" \
+            "# sgRNA: {}\n{}\n"\
+            .format(self.version, self.run_start, run_stop, sample_name, target_name, sgrna, hr_donor)
+
+        return page_header
+
     def frequency_output(self, index_name, results_freq_dict, junction_type_data):
         """
         Format data and write frequency file.
@@ -273,10 +303,12 @@ class ScarSearch:
         self.log.info("Writing Frequency File for {}".format(index_name))
 
         target_name = self.index_dict[index_name][7]
+
         freq_results_outstring = \
-            "# Total\tFrequency\tScar Type\tLeft Deletions\tRight Deletions\tDeletion Size\tMicrohomology\t" \
+            "{}# Total\tFrequency\tScar Type\tLeft Deletions\tRight Deletions\tDeletion Size\tMicrohomology\t" \
             "Microhomology Size\tInsertion\tInsertion Size\tLeft Template\tRight Template\tConsensus Left Junction\t" \
-            "Consensus Right Junction\tTarget Left Junction\tTarget Right Junction\tConsensus\tTarget Region\n"
+            "Consensus Right Junction\tTarget Left Junction\tTarget Right Junction\tConsensus\tTarget Region\n"\
+            .format(self.common_page_header(index_name))
 
         for freq_key in results_freq_dict:
             key_count = results_freq_dict[freq_key][0]
@@ -296,8 +328,8 @@ class ScarSearch:
             del_size = lft_del + rt_del + microhomology_size
             consensus_lft_junction = results_freq_dict[freq_key][1][5]
             consensus_rt_junction = results_freq_dict[freq_key][1][6]
-            template_lft_junction = results_freq_dict[freq_key][1][7]
-            template_rt_junction = results_freq_dict[freq_key][1][8]
+            ref_lft_junction = results_freq_dict[freq_key][1][7]
+            ref_rt_junction = results_freq_dict[freq_key][1][8]
             lft_template = ""
             rt_template = ""
             target_sequence = self.target_region
@@ -312,11 +344,11 @@ class ScarSearch:
                 consensus = Sequence_Magic.rcomp(consensus)
                 target_sequence = Sequence_Magic.rcomp(self.target_region)
                 tmp_con_lft = consensus_lft_junction
-                tmp_target_lft = template_lft_junction
+                tmp_target_lft = ref_lft_junction
                 consensus_lft_junction = len(consensus)-consensus_rt_junction
                 consensus_rt_junction = len(consensus)-tmp_con_lft
-                template_lft_junction = len(self.target_region)-template_rt_junction
-                template_rt_junction = len(self.target_region)-tmp_target_lft
+                ref_lft_junction = len(self.target_region)-ref_rt_junction
+                ref_rt_junction = len(self.target_region)-tmp_target_lft
 
             # HR counts
             if results_freq_dict[freq_key][1][9] == "HR":
@@ -342,7 +374,7 @@ class ScarSearch:
                 junction_type_data[2] += key_count
                 scar_type = "Insertion"
                 lft_template, rt_template = \
-                    self.templated_insertion_search(insertion, template_lft_junction, template_rt_junction, target_name)
+                    self.templated_insertion_search(insertion, ref_lft_junction, ref_rt_junction, target_name)
 
             # Scars not part of the previous four
             else:
@@ -351,7 +383,7 @@ class ScarSearch:
             freq_results_outstring += "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n" \
                 .format(key_count, key_frequency, scar_type, lft_del, rt_del, del_size, microhomology,
                         microhomology_size, insertion, ins_size, lft_template, rt_template, consensus_lft_junction,
-                        consensus_rt_junction, template_lft_junction, template_rt_junction, consensus, target_sequence)
+                        consensus_rt_junction, ref_lft_junction, ref_rt_junction, consensus, target_sequence)
 
         freq_results_file = \
             open("{}{}_{}_ScarMapper_Frequency.txt"
@@ -421,11 +453,13 @@ class ScarSearch:
         :param index_name:
         :param read_results_list:
         """
-        results_file = open("{}{}_{}_ScarMapper.txt"
+        results_file = open("{}{}_{}_ScarMapper_Raw_Data.txt"
                             .format(self.args.WorkingFolder, self.args.Job_Name, index_name), "w")
 
-        results_outstring = "Left Deletions\tRight Deletions\tDeletion Size\tMicrohomology\tInsertion\t" \
-                            "Insertion Size\tConsensus\tTarget Region\n"
+        results_outstring = \
+            "{}Left Deletions\tRight Deletions\tDeletion Size\tMicrohomology\tInsertion\tInsertion Size\t" \
+            "Consensus Left Junction\tConsensus Right Junction\tRef Left Junction\tRef Right Junction\t" \
+            "Consensus\tTarget Region\n".format(self.common_page_header(index_name))
 
         for data_list in read_results_list:
             lft_del = len(data_list[0])
@@ -435,13 +469,36 @@ class ScarSearch:
             total_ins = data_list[2]
             ins_size = len(total_ins)
             consensus = data_list[4]
+            target_region = self.target_region
+            target_name = self.index_dict[index_name][7]
+            consensus_lft_junction = data_list[5]
+            consensus_rt_junction = data_list[6]
+            ref_lft_junction = data_list[7]
+            ref_rt_junction = data_list[8]
+
+            # If sgRNA is from 3' strand we need to swap labels and reverse compliment sequences.
+            if self.target_dict[target_name][5] == "YES":
+                rt_del = len(data_list[0])
+                lft_del = len(data_list[1])
+                consensus = Sequence_Magic.rcomp(data_list[4])
+                target_region = Sequence_Magic.rcomp(self.target_region)
+                microhomology = Sequence_Magic.rcomp(data_list[3])
+                total_ins = Sequence_Magic.rcomp(data_list[2])
+
+                tmp_con_lft = consensus_lft_junction
+                tmp_target_lft = ref_lft_junction
+                consensus_lft_junction = len(consensus)-consensus_rt_junction
+                consensus_rt_junction = len(consensus)-tmp_con_lft
+                ref_lft_junction = len(self.target_region)-ref_rt_junction
+                ref_rt_junction = len(self.target_region)-tmp_target_lft
 
             # skip unaltered reads.
             if del_size == 0 and ins_size == 0:
                 continue
 
-            results_outstring += "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n" \
-                .format(lft_del, rt_del, del_size, microhomology, total_ins, ins_size, consensus, self.target_region)
+            results_outstring += "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n" \
+                .format(lft_del, rt_del, del_size, microhomology, total_ins, ins_size, consensus_lft_junction,
+                        consensus_rt_junction, ref_lft_junction, ref_rt_junction, consensus, target_region)
 
         results_file.write(results_outstring)
         results_file.close()
@@ -545,9 +602,10 @@ class ScarSearch:
 
 
 class DataProcessing:
-    def __init__(self, log, args, run_start, targeting, fq1=None, fq2=None):
+    def __init__(self, log, args, run_start, version, targeting, fq1=None, fq2=None):
         self.log = log
         self.args = args
+        self.version = version
         self.date_format = "%a %b %d %H:%M:%S %Y"
         self.run_start = run_start
         self.fastq_outfile_dict = None
@@ -699,8 +757,8 @@ class DataProcessing:
         # My solution for passing key:value pairs to the multiprocessor.  Largest value group goes first.
         data_list = []
         for key in sorted(self.sequence_dict, key=lambda k: len(self.sequence_dict[k]), reverse=True):
-            data_list.append([self.log, self.args, self.target_dict, self.index_dict, True, key,
-                              self.sequence_dict[key]])
+            data_list.append([self.log, self.args, self.version, self.run_start, self.target_dict, self.index_dict,
+                              True, key, self.sequence_dict[key]])
 
         # Not sure if clearing this is really necessary but it is not used again so why keep the RAM tied up.
         self.sequence_dict.clear()
@@ -907,8 +965,13 @@ class DataProcessing:
                 phase_label_list.append(phase_label)
             break
 
-        summary_outstring = "ScarMapper {}\nStart: {}\nEnd: {}\nFASTQ1: {}\nFASTQ2: {}\nReads Analyzed: {}\n\n"\
-            .format(__version__, self.run_start, run_stop, self.args.FASTQ1, self.args.FASTQ2, self.read_count, )
+        hr_donor = ""
+        if self.args.HR_Donor:
+            hr_donor = "HR Donor: {}\n".format(self.args.HR_Donor)
+
+        summary_outstring = "ScarMapper {}\nStart: {}\nEnd: {}\nFASTQ1: {}\nFASTQ2: {}\nReads Analyzed: {}\n{}\n"\
+            .format(self.version, self.run_start, run_stop, self.args.FASTQ1, self.args.FASTQ2, self.read_count,
+                    hr_donor)
 
         summary_outstring += \
             "Index Name\tSample Name\tSample Replicate\tTarget\tTotal Found\tFraction Total\tPassing Read Filters\t" \
@@ -952,7 +1015,7 @@ class DataProcessing:
                 cut_fraction = 'nan'
 
             # Process HR data
-            hr_count = data_list.summary_data[10]
+            hr_count = "{}; {}".format(data_list.summary_data[10][0], data_list.summary_data[10][1])
             hr_frequency = sum(data_list.summary_data[10])/passing_filters
 
             try:

@@ -7,7 +7,7 @@
 """
 
 import collections
-import Valkyries.Tool_Box as Tool_Box
+from Valkyries import Tool_Box
 import pysam
 
 __author__ = 'Dennis A. Simpson'

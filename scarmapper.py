@@ -5,6 +5,7 @@
          Chapel Hill, NC  27599
 @copyright: 2020
 """
+import csv
 import datetime
 import glob
 import os
@@ -49,7 +50,7 @@ from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Tar
 
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.15.0'
+__version__ = '0.16.0'
 __package__ = 'ScarMapper'
 
 
@@ -131,7 +132,7 @@ def main(command_line_args=None):
             fq2 = FASTQ_Tools.FASTQ_Reader(fastq_file2, log)
 
             indel_processing = \
-                Indel_Processing.DataProcessing(log, args, run_start, Target_Mapper.TargetMapper(log, args), fq1, fq2)
+                Indel_Processing.DataProcessing(log, args, run_start, __version__, Target_Mapper.TargetMapper(log, args), fq1, fq2)
 
             indel_processing.main_loop()
         else:
@@ -140,13 +141,26 @@ def main(command_line_args=None):
 
     elif not args.IndelProcessing:
         # Run frequency file Combine module
+        run_start = datetime.datetime.today().strftime("%a %b %d %H:%M:%S %Y")
         log.info("Process Replicates.")
         data_dict = collections.defaultdict(list)
         file_list = [f for f in glob.glob("{}*ScarMapper_Frequency.txt".format(args.DataFiles, ))]
+        file_count = len(file_list)
+        page_header = "# ScarMapper File Merge v{}\n# Run: {}\n# Sample Name: {}\n"\
+            .format(__version__, run_start, args.SampleName)
+
+        line_num = 0
+        index_file = list(csv.reader(open(file_list[0]), delimiter='\t'))
+        for line in index_file:
+            if not line:
+                break
+            elif line_num > 3:
+                page_header += "{}\n".format(line[0])
+
+            line_num += 1
+        page_header += "\n\n"
 
         for file_name in file_list:
-            # index_name = sample_info[0]
-            # file_name = "{}{}_{}_ScarMapper_Frequency.txt".format(args.DataFiles, args.Job_Name, index_name)
             freq_file_data = Tool_Box.FileParser.indices(log, file_name)
 
             for row in freq_file_data:
@@ -160,15 +174,19 @@ def main(command_line_args=None):
 
         # Process Data and Write Combined Frequency results file
         freq_results_outstring = \
-            "# Frequency\tSEM\tScar Type\tLeft Deletions\tRight Deletions\tDeletion Size\tMicrohomology\t" \
+            "{}# Frequency\tSEM\tScar Type\tLeft Deletions\tRight Deletions\tDeletion Size\tMicrohomology\t" \
             "Microhomology Size\tInsertion\tInsertion Size\tLeft Template\tRight Template\tConsensus Left Junction\t" \
-            "Consensus Right Junction\tTarget Left Junction\tTarget Right Junction\tConsensus\tTarget Region\n"
-        for key, row_list in data_dict.items():
-            row_string = "\t".join(row_list[1])
-            freq = gmean(row_list[0])
-            sem = stats.sem(row_list[0])
+            "Consensus Right Junction\tTarget Left Junction\tTarget Right Junction\tConsensus\tTarget Region\n"\
+            .format(page_header)
 
-            freq_results_outstring += "{}\t{}\t{}\n".format(freq, sem, row_string)
+        for key, row_list in data_dict.items():
+            if len(row_list[0])/file_count >= 0.5:
+
+                row_string = "\t".join(row_list[1])
+                freq = gmean(row_list[0])
+                sem = stats.sem(row_list[0])
+
+                freq_results_outstring += "{}\t{}\t{}\n".format(freq, sem, row_string)
 
         freq_results_file = \
             open("{}{}_{}_ScarMapper_Combined_Frequency.txt"
