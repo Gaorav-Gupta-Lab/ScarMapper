@@ -1,6 +1,6 @@
 #!/bin/bash
 #Parameter file to run ScarMapper Pipeline
-#File generated 2020-03-21
+#File generated 2020-06-03
 
 python3 /full/path/to/scarmapper.py --options_file /full/path/to/run_ScarMapper_IndelProcessins.sh
 exit
@@ -22,7 +22,7 @@ exit
 --Job_Name	# No spaces or special characters, prepended to output files.
 --Spawn	3 # How many parallel jobs?  Max should be n-1 threads or cpu's.  Minimum is 1.
 --Demultiplex	# True or False.  Write demultiplexed FASTQ files?
---Species	# Mouse or Human
+--HR_Donor	# 10 - 15 nucleotide sequence for HR Donor search.  Can be left blank. 
 --Platform	# Illumina, Ramsden
 
 --N_Limit	0.01
