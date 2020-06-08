@@ -1,0 +1,122 @@
+PEAR 1 "5 Nov 2017" "PEAR 0.9.11" "PEAR manual"
+
+PEAR - Paired-end reads merger
+
+IOPTIONS
+
+DESCRIPTION: PEAR is a paired-end reads merger for the Illumina platform.
+
+PEAR evaluates all possible paired-end read overlaps and does
+not require the target fragment size as input. It also implements
+a statistical test for minimizing false-positive results. The highly optimized
+and parallelized implementation allows for merging millions of paired-end reads
+within a few minutes on a standard desktop computer.
+
+Using PEAR is very easy. Invoke it from the prompt of your command interpreter as follows:
+
+shell> pear -f forward-fastq -r reverse-fastq -o ouput
+
+-f, -forward-fastq=FILENAME
+Forward paired-end FASTQ file
+
+-r, -reverse-fastq=FILENAME
+Reverse paired-end FASTQ file
+
+-o, -output=FILENAME
+Output filename
+
+-p, -value=PVALUE
+Specify the value PVALUE as the p-value for the statistical test. If the computer
+p-value of a possible merging exceeds the specified p-value then the paired-end read will
+not be merged. Valid options are: 0.0001, 0.001, 0.01, 0.05 and 1.0. Setting 1.0 disables the test. (default: 0.01)
+
+-v, -min-overlap=VALUE
+Set VALUE as the minimum overlap size. The minimum overlap may be set to 1 when
+the statistical test is used. However, further restricting the minimum overlap size to a 
+proper value may reduce false-positive assemblies. (default: 10)
+
+-m, -max-assembly-length=VALUE
+Set VALUE as the maximum possible length of the assembled sequences. Setting this
+value to 0 disables the restriction and assembled sequences may be arbitrarily long (default: 0)
+
+-n, -min-assembly-length=VALUE
+Set VALUE as the minimum possible length of the assembled sequences. Setting this
+value to 0 disables the restriction and assembled sequences may be arbitrarily long (default: 0)
+
+-t, -min-trim-length=VALUE
+Sets the minimum length of reads after trimming the low quality part (see option -q) to VALUE.
+(default: 1)
+
+-q, -quality-threshold=VALUE
+Sets the quality score threshold for trimming the low quality part of a read to VALUE. If the quality scores
+of two consecutive bases are strictly less than the specified threshold, the rest of the read will
+be trimmed. (default: 0)
+
+-u, -max-uncalled-base=VALUE
+Sets the maximal proportion of uncalled bases in a read to VALUE. Setting this value to
+0 will cause PEAR to discard all reads that contain uncalled bases. The other extreme
+setting is 1 which causes PEAR to process all reads independent on the  number of
+uncalled bases. (default: 1)
+
+-g, -test-method=TYPE
+Specifies the type of statistical test. Two options are available, 1 and 2. (default: 1)
+
+1: Given the minimum allowed overlap, test using the highest OES. Note that due to its
+discrete nature, this test usually yields a lower p-value for the assembled read than the cut-off (specified by -p).
+For example, setting the cut-off to 0.05 using this test, the assembled reads might have an actual p-value
+of 0.02
+
+2: Use the acceptance probability (m.a.p). This test method computes the same probability as test method 1R. However,
+it assumes that the minimal overlap is the observed overlap with the highest OES, instead of the one
+specified by -v. Therefore, this is not a valid statistical test and the 'p-value' is in fact the 
+maximal probability for accepting the assembly. Nevertheless, in practice, test 2 can correctly assemble 
+more reads with only slightly higher false-positive rate when the actual overlap sizes are relatively small.
+
+-e, -empirical-freqs
+Disable empirical base frequencies. (default: use empirical base frequencies)
+
+-s, -score-method=METHOD
+Specify the scoring method. Three options are available, 1, 2 and 3. (default: 2)
+
+1: OES with +1 for match and -1 for mismatch
+
+2: Assembly score (AS). Use +1 for match and -1 for mismatch multiplied by base quality scores
+
+3: Ignore quality scores and use +1 for a match and -1 for a mismatch
+
+-b, -phred-base=VALUE
+Sets the base PHRED quality score to VALUE. (default: 33)
+
+-y, -memory=SIZE
+Specifies the amount of memory to be used. The number may be followed by one of the letters K, M, or G
+denoting Kilobytes, Megabytes and Gigabytes, respectively. Bytes are assumed in case no letter is specified. (default: 200M)
+
+-j, -threads=THREADS
+Use THREADS number of threads
+
+-c, -cap=VALUE
+Specify the upper bound for the resulting quality score. If set to zero, capping is disabled. (default: 40)
+
+-z, -nbase
+When merging a base-pair that consists of two non equal bases out of which none is degenerate, set the merged base to N, with the highest quality score of the two bases.
+
+-k, -keep-original
+Do not reverse and complement the reverse reads when writing the unassembled and discarded reads output.
+
+-i, -stitch
+Stitch (concatenate) reads by reverse-complementing the reverse read and appending it to the forward read, without checking for an overlap.
+
+-h, -help
+This help screen
+
+Tomas Flouri <Tomas.Flouri@h-its.org>
+
+Jiajie Zhang <Jiajie.Zhang@h-its.org>
+
+Kassian Kobert <Kassian.Kobert@h-its.org>
+
+Alexandros Stamatakis <Alexandros.Stamatakis@h-its.org>
+
+Report PEAR bugs to pear-users@googlegroups.com
+
+For more information, please refer to the PEAR, which is available online at http://www.exelixis-lab.org/web/software/pear
