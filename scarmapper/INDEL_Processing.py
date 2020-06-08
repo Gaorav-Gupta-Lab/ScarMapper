@@ -14,17 +14,16 @@ import time
 import pathos
 import pysam
 from natsort import natsort
-
 from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.16.0'
+__version__ = '0.17.0'
 __package__ = 'ScarMapper'
 
 
 class ScarSearch:
-    def __init__(self, log, args, version, run_start, target_dict, index_dict, fastq, index_name, sequence_list):
+    def __init__(self, log, args, version, run_start, target_dict, index_dict, index_name, sequence_list):
         self.log = log
         self.args = args
         self.version = version
@@ -33,10 +32,8 @@ class ScarSearch:
         self.index_dict = index_dict
         self.index_name = index_name
         self.sequence_list = sequence_list
-        self.fastq = fastq
         self.summary_data = None
         self.target_region = ""
-        # self.sgrna = None
         self.cutsite = None
         self.lower_limit = None
         self.upper_limit = None
@@ -48,6 +45,7 @@ class ScarSearch:
             self.hr_donor = Sequence_Magic.rcomp(args.HR_Donor)
         else:
             self.hr_donor = args.HR_Donor
+
         self.data_processing()
 
     def window_mapping(self):
@@ -171,7 +169,6 @@ class ScarSearch:
         # Get the sequence of the sgRNA.
         sgrna = self.target_dict[target_name][4]
         self.target_region = refseq.fetch(chrm, start, stop)
-
         self.cutsite_search(target_name, sgrna, chrm, start, stop)
         self.window_mapping()
         loop_count = 0
@@ -188,7 +185,7 @@ class ScarSearch:
                                       time.time() - start_time))
                 split_time = time.time()
 
-            if self.fastq:
+            if not self.args.PEAR:
                 left_seq, right_seq = seq
                 # Muscle will not properly gap sequences with an overlap smaller than about 50 nucleotides.
                 # consensus_seq = \
@@ -198,7 +195,7 @@ class ScarSearch:
                 consensus_seq = self.simple_consensus(left_seq, right_seq)
 
             else:
-                # This is for those people that want to feed in consensus sequences generated elsewhere.
+                # If we are using pear to generate the consensus.
                 consensus_seq = seq
 
             # Consensus sequence creation failed.
@@ -539,6 +536,7 @@ class ScarSearch:
         if not cutsite_found:
             self.log.error("sgRNA {} does not map to locus {}; chr{}:{}-{}.  Check --TargetFile and try again."
                            .format(sgrna, target_name, chrm, start, stop))
+            raise SystemExit(1)
             os._exit(1)
 
     def gapped_aligner(self, fasta_data):
@@ -620,13 +618,133 @@ class DataProcessing:
         self.fastq2 = fq2
         self.read_count = 0
 
+    def consensus_demultiplex(self):
+        """
+        Takes a FASTQ file of consensus reads and identifies each by index.  Handles writing demultiplexed FASTQ if
+        user desired.
+        """
+        self.log.info("Consensus Index Search")
+        # fastq1_short_count = 0
+        # fastq2_short_count = 0
+        eof = False
+        start_time = time.time()
+        split_time = time.time()
+        fastq_file_name_list = []
+        fastq_data_dict = collections.defaultdict(lambda: collections.defaultdict(list))
+        while not eof:
+            # Debugging Code Block
+            if self.args.Verbose == "DEBUG":
+                read_limit = 500000
+                if self.read_count > read_limit:
+                    if self.args.Demultiplex:
+                        for index_name in fastq_data_dict:
+                            r1_data = fastq_data_dict[index_name]["R1"]
+                            r1, r2 = self.fastq_outfile_dict[index_name]
+                            r1.write(r1_data)
+                            r1.close()
+
+                    Tool_Box.debug_messenger("Limiting Reads Here to {}".format(read_limit))
+                    eof = True
+
+            try:
+                fastq1_read = next(self.fastq1.seq_read())
+
+            except StopIteration:
+                if self.args.Demultiplex:
+                    for index_name in fastq_data_dict:
+                        r1_data = fastq_data_dict[index_name]["R1"]
+                        r1, r2 = self.fastq_outfile_dict[index_name]
+                        r1.write(r1_data)
+                        r1.close()
+
+                eof = True
+                continue
+
+            self.read_count += 1
+            if self.read_count % 100000 == 0:
+                elapsed_time = int(time.time() - start_time)
+                block_time = int(time.time() - split_time)
+                split_time = time.time()
+                self.log.info("Processed {} reads in {} seconds.  Total elapsed time: {} seconds."
+                              .format(self.read_count, block_time, elapsed_time))
+
+            # Match read with library index.
+            match_found, left_seq, right_seq, index_name, fastq1_read, fastq2_read = \
+                self.index_matching(fastq1_read)
+
+            if match_found:
+                locus = self.index_dict[index_name][7]
+                phase_key = "{}+{}".format(index_name, locus)
+                r2_found = False
+                r1_found = False
+                if self.args.Platform == "Illumina":
+
+                    # Score the phasing and place the reads in a dictionary.
+                    for r2_phase, r1_phase in zip(self.phase_dict[locus]["R2"], self.phase_dict[locus]["R1"]):
+                        r2_phase_name = r2_phase[1]
+                        r1_phase_name = r1_phase[1]
+                        self.phase_count[phase_key]["Phase " + r1_phase_name] += 0
+                        self.phase_count[phase_key]["Phase " + r2_phase_name] += 0
+
+                        # The phasing is the last N nucleotides of the consensus.
+                        if r2_phase[0] == Sequence_Magic.rcomp(fastq1_read.seq[-len(r2_phase[0]):]) and not r2_found:
+                            self.phase_count[phase_key]["Phase "+r2_phase_name] += 1
+                            r2_found = True
+
+                        if r1_phase[0] == fastq1_read.seq[:len(r1_phase[0])] and not r1_found:
+                            self.phase_count[phase_key]["Phase "+r1_phase_name] += 1
+                            r1_found = True
+                    # if no phasing is found then note that.
+                    if not r2_found:
+                        self.phase_count[phase_key]["No Read 2 Phasing"] += 1
+                    if not r1_found:
+                        self.phase_count[phase_key]["No Read 1 Phasing"] += 1
+
+                    # The adapters on AAVS1.1 are reversed causing the reads to be reversed.
+                    if locus == "AAVS1.1":
+                        self.sequence_dict[index_name].append(fastq1_read.seq)
+                    else:
+                        self.sequence_dict[index_name].append(fastq1_read.seq)
+
+                elif self.args.Platform == "Ramsden":
+                    self.sequence_dict[index_name].append(Sequence_Magic.rcomp(fastq1_read.seq))
+                else:
+                    self.log.error("--Platform {} not correctly defined.  Edit parameter file and try again"
+                                   .format(self.args.Platform))
+                    raise SystemExit(1)
+
+                if self.args.Demultiplex:
+                    fastq_data_dict[index_name]["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
+
+                    fastq_file_name_list.append("{}{}_{}_Consensus.fastq"
+                                                .format(self.args.WorkingFolder, self.args.Job_Name, index_name))
+
+            elif self.args.Demultiplex and not match_found:
+                fastq_data_dict['unknown']["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
+
+                fastq_file_name_list.append("{}{}_Unknown_Consensus.fastq"
+                                            .format(self.args.WorkingFolder, self.args.Job_Name))
+
+        if self.args.Demultiplex:
+            self.fastq_compress(list(set(fastq_file_name_list)))
+
+    def fastq_compress(self, fastq_file_name_list):
+        """
+        Take a list of file names and gzip each file.
+        :param fastq_file_name_list:
+        """
+        self.log.info("Spawning {} Jobs to Compress {} Files.".format(self.args.Spawn, len(fastq_file_name_list)))
+
+        p = pathos.multiprocessing.Pool(int(self.args.Spawn))
+        p.starmap(Tool_Box.compress_files, zip(fastq_file_name_list, itertools.repeat(self.log)))
+
+        self.log.info("All Files Compressed")
+
     def demultiplex(self):
         """
         Finds reads by index.  Handles writing demultiplexed FASTQ if user desired.
         """
         self.log.info("Index Search")
-        # fastq1_short_count = 0
-        # fastq2_short_count = 0
         eof = False
         start_time = time.time()
         split_time = time.time()
@@ -713,7 +831,7 @@ class DataProcessing:
                 elif self.args.Platform == "Ramsden":
                     self.sequence_dict[index_name].append([left_seq, right_seq])
                 else:
-                    self.log.error("--Platform {} not defined.  Edit parameter file and try again"
+                    self.log.error("--Platform {} not correctly defined.  Edit parameter file and try again"
                                    .format(self.args.Platform))
                     raise SystemExit(1)
 
@@ -734,13 +852,7 @@ class DataProcessing:
                                             .format(self.args.WorkingFolder, self.args.Job_Name))
 
         if self.args.Demultiplex:
-            fastq_file_name_list = list(set(fastq_file_name_list))
-            self.log.info("Spawning {} Jobs to Compress {} Files.".format(self.args.Spawn, len(fastq_file_name_list)))
-
-            p = pathos.multiprocessing.Pool(int(self.args.Spawn))
-            p.starmap(Tool_Box.compress_files, zip(fastq_file_name_list, itertools.repeat(self.log)))
-
-            self.log.info("All Files Compressed")
+            self.fastq_compress(list(set(fastq_file_name_list)))
 
     def main_loop(self):
         """
@@ -748,8 +860,10 @@ class DataProcessing:
         """
 
         self.log.info("Beginning main loop|Demultiplexing FASTQ")
-
-        self.demultiplex()
+        if self.args.PEAR:
+            self.consensus_demultiplex()
+        else:
+            self.demultiplex()
 
         self.log.info("Spawning {} Jobs to Process {} Libraries".format(self.args.Spawn, len(self.sequence_dict)))
         p = pathos.multiprocessing.Pool(int(self.args.Spawn))
@@ -758,7 +872,7 @@ class DataProcessing:
         data_list = []
         for key in sorted(self.sequence_dict, key=lambda k: len(self.sequence_dict[k]), reverse=True):
             data_list.append([self.log, self.args, self.version, self.run_start, self.target_dict, self.index_dict,
-                              True, key, self.sequence_dict[key]])
+                              key, self.sequence_dict[key]])
 
         # Not sure if clearing this is really necessary but it is not used again so why keep the RAM tied up.
         self.sequence_dict.clear()
@@ -846,8 +960,10 @@ class DataProcessing:
             if self.args.Demultiplex:
                 r1 = FASTQ_Tools.Writer(self.log, "{}{}_{}_R1.fastq"
                                         .format(self.args.WorkingFolder, self.args.Job_Name, index_name))
-                r2 = FASTQ_Tools.Writer(self.log, "{}{}_{}_R2.fastq"
-                                        .format(self.args.WorkingFolder, self.args.Job_Name, index_name))
+                r2 = ""
+                if not self.args.PEAR:
+                    r2 = FASTQ_Tools.Writer(self.log, "{}{}_{}_R2.fastq"
+                                            .format(self.args.WorkingFolder, self.args.Job_Name, index_name))
                 self.fastq_outfile_dict[index_name] = [r1, r2]
 
         return index_dict
@@ -892,7 +1008,7 @@ class DataProcessing:
 
         return gapped_alignment_dict
 
-    def index_matching(self, fastq1_read, fastq2_read):
+    def index_matching(self, fastq1_read, fastq2_read=None):
         """
         This matches an index sequence with the index found in the sequence reads.
         :param fastq1_read:
@@ -911,26 +1027,34 @@ class DataProcessing:
         for index_key in self.index_dict:
             left_index = self.index_dict[index_key][0]
             right_index = self.index_dict[index_key][2]
-            # left_trim = self.index_dict[index_key][1]
-            # right_trim = self.index_dict[index_key][3]
 
             if self.args.Platform == "Illumina":
                 # The indices are after the last ":" in the header.
-                right_match = Sequence_Magic.match_maker(right_index, fastq2_read.name.split(":")[-1].split("+")[0])
-                left_match = Sequence_Magic.match_maker(left_index, fastq2_read.name.split(":")[-1].split("+")[1])
+                right_match = Sequence_Magic.match_maker(right_index, fastq1_read.name.split(":")[-1].split("+")[0])
+                left_match = Sequence_Magic.match_maker(left_index, fastq1_read.name.split(":")[-1].split("+")[1])
 
             elif self.args.Platform == "Ramsden":
-                left_match = Sequence_Magic.match_maker(Sequence_Magic.rcomp(left_index), fastq2_read.seq[:len(left_index)])
-                right_match = Sequence_Magic.match_maker(right_index, fastq1_read.seq[:len(right_index)])
+                if self.args.PEAR:
+                    left_match = \
+                        Sequence_Magic.match_maker(left_index, fastq1_read.seq[-len(left_index):])
+                else:
+                    left_match = \
+                        Sequence_Magic.match_maker(Sequence_Magic.rcomp(left_index), fastq2_read.seq[:len(left_index)])
+                right_match = \
+                    Sequence_Magic.match_maker(right_index, fastq1_read.seq[:len(right_index)])
 
             if index_key not in self.read_count_dict:
                 self.read_count_dict[index_key] = 0
 
             if left_match <= mismatch and right_match <= mismatch:
                 self.read_count_dict[index_key] += 1
+                left_seq = ""
+                right_seq = fastq1_read.seq
                 match_found = True
+                if not fastq2_read:
+                    break
 
-            if match_found:
+            if match_found and fastq2_read:
                 # iSeq runs generally have low quality reads on the 3' ends.  This does a blanket trim to remove them.
                 left_seq = fastq2_read.seq[:-5]
                 right_seq = fastq1_read.seq[:-5]
@@ -952,10 +1076,14 @@ class DataProcessing:
         self.log.info("Formatting data and writing summary file")
 
         summary_file = open("{}{}_ScarMapper_Summary.txt".format(self.args.WorkingFolder, self.args.Job_Name), "w")
+
+        hr_labels = ""
+        if self.args.HR_Donor:
+            hr_labels = "\tHR Count\tHR Fraction"
+
         sub_header = \
-            "No Junction\tScar Count\tScar Fraction\tHR Count\tHR Fraction\tLeft Deletion Count\tRight Deletion Count\t" \
-            "Insertion Count\tMicrohomology Count\tNormalized Microhomology"
-        run_stop = datetime.datetime.today().strftime(self.date_format)
+            "No Junction\tScar Count\tScar Fraction{}\tLeft Deletion Count\tRight Deletion Count\t" \
+            "Insertion Count\tMicrohomology Count\tNormalized Microhomology".format(hr_labels)
 
         phasing_labels = ""
         phase_label_list = []
@@ -965,13 +1093,14 @@ class DataProcessing:
                 phase_label_list.append(phase_label)
             break
 
-        hr_donor = ""
+        hr_data = ""
         if self.args.HR_Donor:
-            hr_donor = "HR Donor: {}\n".format(self.args.HR_Donor)
+            hr_data = "HR Donor: {}\n".format(self.args.HR_Donor)
 
+        run_stop = datetime.datetime.today().strftime(self.date_format)
         summary_outstring = "ScarMapper {}\nStart: {}\nEnd: {}\nFASTQ1: {}\nFASTQ2: {}\nReads Analyzed: {}\n{}\n"\
             .format(self.version, self.run_start, run_stop, self.args.FASTQ1, self.args.FASTQ2, self.read_count,
-                    hr_donor)
+                    hr_data)
 
         summary_outstring += \
             "Index Name\tSample Name\tSample Replicate\tTarget\tTotal Found\tFraction Total\tPassing Read Filters\t" \
@@ -1014,9 +1143,12 @@ class DataProcessing:
             except ZeroDivisionError:
                 cut_fraction = 'nan'
 
-            # Process HR data
-            hr_count = "{}; {}".format(data_list.summary_data[10][0], data_list.summary_data[10][1])
-            hr_frequency = sum(data_list.summary_data[10])/passing_filters
+            # Process HR data if present
+            hr_data = ""
+            if self.args.HR_Donor:
+                hr_count = "{}; {}".format(data_list.summary_data[10][0], data_list.summary_data[10][1])
+                hr_frequency = sum(data_list.summary_data[10])/passing_filters
+                hr_data = "\t{}\t{}".format(hr_count, hr_frequency)
 
             try:
                 tmej = data_list.summary_data[8][0]
@@ -1041,11 +1173,11 @@ class DataProcessing:
                 tmej_fraction = tmej / cut
 
             summary_outstring += \
-                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t" \
-                "{}\t{}\t{}\n"\
+                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}{}\t{}\t{}\t{}{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t" \
+                "{}\t{}\n"\
                 .format(index_name, sample_name, sample_replicate, target, library_read_count, fraction_all_reads,
                         passing_filters, fraction_passing, phase_data, con_fail,
-                        no_junction, cut, cut_fraction, hr_count, hr_frequency, left_del, right_del, total_ins,
+                        no_junction, cut, cut_fraction, hr_data, left_del, right_del, total_ins,
                         microhomology, microhomology_fraction, tmej, tmej_fraction, nhej, nhej_fraction,
                         non_microhomology_del, non_mh_del_fraction, large_ins, large_ins_fraction, other_scar)
 

@@ -7,7 +7,7 @@
 """
 
 import collections
-from Valkyries import Tool_Box
+from Valkyries import Tool_Box, Sequence_Magic
 import pysam
 
 __author__ = 'Dennis A. Simpson'

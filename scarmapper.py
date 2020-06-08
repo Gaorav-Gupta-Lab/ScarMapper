@@ -8,18 +8,21 @@
 import csv
 import datetime
 import glob
+import itertools
 import os
 import collections
 import subprocess
 import argparse
 import sys
 import time
+import pathos
+from io import StringIO
 from scipy import stats
 from distutils.util import strtobool
 from scipy.stats import gmean
 from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FASTQ_Tools
 import re
-
+# This is a seriously ugly hack to check the existance and age of the compiled file.
 folder_content = os.listdir("{0}{1}scarmapper{1}".format(os.path.dirname(__file__), os.sep))
 regex_pattern = "SlidingWindow.cpython.*\.so"
 regex = re.compile(regex_pattern)
@@ -31,10 +34,9 @@ for f in folder_content:
         break
 if cfile:
     compiled_time = \
-        os.path.getmtime("{0}{1}scarmapper{1}{2}".format(os.path.dirname(__file__), os.sep, cfile))
+        time.ctime(os.path.getmtime("{0}{1}scarmapper{1}{2}".format(os.path.dirname(__file__), os.sep, cfile)))
     pyx_module_time = \
-        os.path.getmtime("{0}{1}scarmapper{1}SlidingWindow.pyx".format(os.path.dirname(__file__), os.sep))
-
+        time.ctime(os.path.getmtime("{0}{1}scarmapper{1}SlidingWindow.pyx".format(os.path.dirname(__file__), os.sep)))
     if pyx_module_time > compiled_time:
         old_file = True
 
@@ -48,9 +50,8 @@ if not cfile or old_file:
 
 from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
 
-
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.16.0'
+__version__ = '0.18.0'
 __package__ = 'ScarMapper'
 
 
@@ -79,12 +80,12 @@ def atropos_trim(args, log, method):
     # for adapter in user_sequences:
     #     additional_adapters += "-a {0}\n-A {0}\n".format(adapter)
     config_block = \
-        "trim\n--aligner {0}\n--threads {1}\n{2}\n-G file:{3}\n-g file:{3}\n-A file:{4}\n-a file:{4}\n-o {5}\n-p {6}\n"\
-        "-pe1 {7}\n-pe2 {8}\n{14}\n{9}\n--error-rate {10}\n--times 3\n--quality-cutoff 20\n"\
-        "--stats bot\n--read-queue-size {12}\n--result-queue-size {13}\n--report-file {11}\n"\
-        .format(args.Atropos_Aligner, args.Spawn, additional_adapters, args.Anchored_Adapters_5p,
-                args.Anchored_Adapters_3p, fastq1_trimmed, fastq2_trimmed, args.FASTQ1, args.FASTQ2, nextseq_trim,
-                args.Adapter_Mismatch_Fraction, trim_report, args.Read_Queue_Size, args.Result_Queue_Size, op_order)
+        "trim\n--aligner {0}\n--threads {1}\n{2}\n-G file:{3}\n-g file:{3}\n-A file:{4}\n-a file:{4}\n-o {5}\n-p {6}\n" \
+        "-pe1 {7}\n-pe2 {8}\n{14}\n{9}\n--error-rate {10}\n--times 3\n--quality-cutoff 20\n" \
+        "--stats bot\n--read-queue-size {12}\n--result-queue-size {13}\n--report-file {11}\n" \
+            .format(args.Atropos_Aligner, args.Spawn, additional_adapters, args.Anchored_Adapters_5p,
+                    args.Anchored_Adapters_3p, fastq1_trimmed, fastq2_trimmed, args.FASTQ1, args.FASTQ2, nextseq_trim,
+                    args.Adapter_Mismatch_Fraction, trim_report, args.Read_Queue_Size, args.Result_Queue_Size, op_order)
     config_file = open("{}{}_Atropos_Config.txt".format(args.WorkingFolder, args.Job_Name), "w")
     config_file.write(config_block)
     config_file.close()
@@ -93,6 +94,59 @@ def atropos_trim(args, log, method):
     subprocess.run("atropos --config {}{}_Atropos_Config.txt".format(args.WorkingFolder, args.Job_Name), shell=True)
 
     return fastq1_trimmed, fastq2_trimmed
+
+
+def pear_consensus(args, log):
+    """
+    This will take the input FASTQ files and use PEAR to generate a consensus file.
+    :param args:
+    :param log:
+    :return:
+    """
+    log.info("Beginning PEAR Consensus")
+
+    fastq_consensus_prefix = "{}{}".format(args.WorkingFolder, args.Job_Name)
+    fastq_consensus_file = "{}.assembled.fastq".format(fastq_consensus_prefix)
+    discarded_fastq = "{}.discarded.fastq".format(fastq_consensus_prefix)
+    r1_unassembled = "{}.unassembled.forward.fastq".format(fastq_consensus_prefix)
+    r2_unassembled = "{}.unassembled.reverse.fastq".format(fastq_consensus_prefix)
+
+    y = "-y {} ".format(args.Memory)
+    j = "-j {} ".format(int(args.Spawn)-1)
+    p_value = ''
+    if args.PValue:
+        p_value = "-p {} ".format(args.PValue)
+    min_overlap = ''
+    if args.MinOverlap:
+        min_overlap = "-v {} ".format(args.MinOverlap)
+    quality_threshold = ""
+    if args.QualityThreshold:
+        quality_threshold = "-q {} ".format(args.QualityThreshold)
+    phred_value = ""
+    if args.PhredValue:
+        phred_value = "-b {} ".format(args.PhredValue)
+
+    proc = subprocess.run(
+        "{}{}Pear{}bin{}./pear -f {} -r {} -o {} {}{}{}{}{}{}"
+        .format(os.path.dirname(__file__), os.sep, os.sep, os.sep, args.FASTQ1, args.FASTQ2, fastq_consensus_prefix, y, j, p_value, min_overlap,
+                quality_threshold, phred_value), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+
+    if proc.stderr:
+        log.error("{}\n{}\n\n".format(proc.stderr.decode(), proc.stdout.decode()))
+    else:
+        log.info(
+        "Begin PEAR Output\n"
+        "----------------------------------------------------------------------------------------------------------\n{}"
+        "\n----------------------------------------------------------------------------------------------------------\n"
+        .format(proc.stdout.decode()))
+
+    file_list = [fastq_consensus_file, r1_unassembled, r2_unassembled]
+    if os.stat(discarded_fastq).st_size > 0:
+        file_list.append(discarded_fastq)
+    else:
+        Tool_Box.delete([discarded_fastq])
+
+    return file_list
 
 
 def main(command_line_args=None):
@@ -118,21 +172,26 @@ def main(command_line_args=None):
 
     log = Tool_Box.Logger(args)
     Tool_Box.log_environment_info(log, args, command_line_args)
-    
+
     module_name = ""
     log.info("{} v{}".format(__package__, __version__))
 
     if args.IndelProcessing:
         if args.Platform == "Illumina" or args.Platform == "Ramsden":
             log.info("Sending FASTQ files to FASTQ preprocessor.")
-            fastq_file1 = args.FASTQ1
-            fastq_file2 = args.FASTQ2
 
-            fq1 = FASTQ_Tools.FASTQ_Reader(fastq_file1, log)
-            fq2 = FASTQ_Tools.FASTQ_Reader(fastq_file2, log)
+            if args.PEAR:
+                file_list = pear_consensus(args, log)
+                fastq_consensus = file_list[0]
+                fq1 = FASTQ_Tools.FASTQ_Reader(fastq_consensus, log)
+                fq2 = None
+            else:
+                fq2 = FASTQ_Tools.FASTQ_Reader(args.FASTQ2, log)
+                fq1 = FASTQ_Tools.FASTQ_Reader(args.FASTQ1, log)
 
             indel_processing = \
-                Indel_Processing.DataProcessing(log, args, run_start, __version__, Target_Mapper.TargetMapper(log, args), fq1, fq2)
+                Indel_Processing.DataProcessing(log, args, run_start, __version__,
+                                                Target_Mapper.TargetMapper(log, args), fq1, fq2)
 
             indel_processing.main_loop()
         else:
@@ -146,7 +205,7 @@ def main(command_line_args=None):
         data_dict = collections.defaultdict(list)
         file_list = [f for f in glob.glob("{}*ScarMapper_Frequency.txt".format(args.DataFiles, ))]
         file_count = len(file_list)
-        page_header = "# ScarMapper File Merge v{}\n# Run: {}\n# Sample Name: {}\n"\
+        page_header = "# ScarMapper File Merge v{}\n# Run: {}\n# Sample Name: {}\n" \
             .format(__version__, run_start, args.SampleName)
 
         line_num = 0
@@ -176,12 +235,11 @@ def main(command_line_args=None):
         freq_results_outstring = \
             "{}# Frequency\tSEM\tScar Type\tLeft Deletions\tRight Deletions\tDeletion Size\tMicrohomology\t" \
             "Microhomology Size\tInsertion\tInsertion Size\tLeft Template\tRight Template\tConsensus Left Junction\t" \
-            "Consensus Right Junction\tTarget Left Junction\tTarget Right Junction\tConsensus\tTarget Region\n"\
-            .format(page_header)
+            "Consensus Right Junction\tTarget Left Junction\tTarget Right Junction\tConsensus\tTarget Region\n" \
+                .format(page_header)
 
         for key, row_list in data_dict.items():
-            if len(row_list[0])/file_count >= 0.5:
-
+            if len(row_list[0]) / file_count >= 0.5:
                 row_string = "\t".join(row_list[1])
                 freq = gmean(row_list[0])
                 sem = stats.sem(row_list[0])
@@ -194,6 +252,12 @@ def main(command_line_args=None):
 
         freq_results_file.write(freq_results_outstring)
         freq_results_file.close()
+
+    # Compress PEAR files.
+    if args.PEAR:
+        log.info("Compressing {} FASTQ Files Generated by PEAR.".format(len(file_list)))
+        p = pathos.multiprocessing.Pool(int(args.Spawn))
+        p.starmap(Tool_Box.compress_files, zip(file_list, itertools.repeat(log)))
 
     warning = "\033[1;31m **See warnings above**\033[m" if log.warning_occurred else ''
     elapsed_time = int(time.time() - start_time)
@@ -252,10 +316,10 @@ def string_to_boolean(parser):
     args = options_parser.parse_args()
 
     if args.IndelProcessing == "True":
-        # options_parser.set_defaults(Atropos_Trim=bool(strtobool(args.Atropos_Trim)))
+        options_parser.set_defaults(PEAR=True)
         options_parser.set_defaults(Demultiplex=bool(strtobool(args.Demultiplex)))
         options_parser.set_defaults(OutputRawData=bool(strtobool(args.OutputRawData)))
-        # options_parser.set_defaults(NextSeq_Trim=bool(strtobool(args.NextSeq_Trim)))
+
     options_parser.set_defaults(IndelProcessing=bool(strtobool(args.IndelProcessing)))
     options_parser.set_defaults(Verbose=args.Verbose.upper())
 
