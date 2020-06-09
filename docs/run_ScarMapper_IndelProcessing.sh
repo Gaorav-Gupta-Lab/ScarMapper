@@ -1,6 +1,6 @@
 #!/bin/bash
 #Parameter file to run ScarMapper Pipeline
-#File generated 2020-06-03
+#File generated 2020-06-08
 
 python3 /full/path/to/scarmapper.py --options_file /full/path/to/run_ScarMapper_IndelProcessins.sh
 exit
@@ -28,4 +28,11 @@ exit
 --N_Limit	0.01
 --Minimum_Length	100	# Length after trimming
 --OutputRawData	False # True or False.  Output raw data files.
+
+# PEAR Options.  Leave blank for defaults
+--PValue	# Default 0.01
+--Memory	# Default 200M.  Recomend >1000M
+--MinOverlap	# Default 10
+--QualityThreshold	# Default 40
+--PhredValue	# Default 33
 
