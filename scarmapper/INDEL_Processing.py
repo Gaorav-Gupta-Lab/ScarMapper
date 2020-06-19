@@ -8,7 +8,6 @@
 import collections
 import datetime
 import itertools
-import os
 import subprocess
 import time
 import pathos
@@ -73,68 +72,6 @@ class ScarSearch:
             lft_position += 1
             rt_position += 1
 
-    def trim_phasing(self, seq, left_read):
-        """
-        Trim and anchor the 5' end of each read to the appropriate end of target region
-        :param seq:
-        :param left_read:
-        :return:
-        """
-
-        right_position = 5
-        right_limit = 25
-        lft_position = 0
-        if left_read:
-            target_block = self.target_region[:5]
-        else:
-            target_block = Sequence_Magic.rcomp(self.target_region)[:5]
-        block_found = False
-
-        while right_position < right_limit and not block_found:
-            left_block = seq[lft_position:right_position]
-            if left_block == target_block:
-                seq = seq[lft_position:]
-                block_found = True
-            lft_position += 1
-            right_position += 1
-
-        return block_found, seq
-
-    @staticmethod
-    def simple_consensus(left_seq, right_seq):
-        """
-        Generate a simple consensus sequence from trimmed read 1 and read 2 sequences.
-        :param left_seq:
-        :param right_seq:
-        :return:
-        """
-        rt_seq = Sequence_Magic.rcomp(right_seq)
-        right_limit = len(right_seq) - 25
-        left_limit = 25
-        window_size = 7
-        left_position = len(left_seq) - window_size
-        right_position = len(left_seq)
-        consensus_seq = ""
-
-        while left_position > left_limit and not consensus_seq:
-            left_block = left_seq[left_position:right_position]
-            lft_position = 0
-            rt_position = window_size
-
-            while rt_position < right_limit and not consensus_seq:
-                test_window = rt_seq[lft_position:rt_position]
-
-                if left_block == test_window:
-                    consensus_seq = left_seq + rt_seq[rt_position:]
-
-                lft_position += 1
-                rt_position += 1
-
-            left_position -= 1
-            right_position -= 1
-
-        return consensus_seq
-
     def data_processing(self):
         """
         Generate the consensus sequence and find indels.  Write the frequency file.  Called by pathos pool
@@ -144,8 +81,8 @@ class ScarSearch:
 
         self.log.info("Begin Processing {}".format(self.index_name))
         """
-        Summary_Data List: index_name, total aberrant, left deletions, right deletions, total deletions, left insertions, 
-        right insertions, total insertions, microhomology, number filtered, target_name
+        Summary_Data List: index_name, total aberrant, left deletions, right deletions, total deletions, left 
+        insertions, right insertions, total insertions, microhomology, number filtered, target_name
         """
         target_name = self.index_dict[self.index_name][7]
         self.summary_data = [self.index_name, 0, 0, 0, 0, 0, [0, 0], [0, 0], 'junction data', target_name, [0, 0]]
@@ -185,18 +122,7 @@ class ScarSearch:
                                       time.time() - start_time))
                 split_time = time.time()
 
-            if not self.args.PEAR:
-                left_seq, right_seq = seq
-                # Muscle will not properly gap sequences with an overlap smaller than about 50 nucleotides.
-                # consensus_seq = \
-                #     self.gapped_aligner(">left\n{}\n>right\n{}\n"
-                #                         .format(left_seq, Sequence_Magic.rcomp(right_seq)))
-
-                consensus_seq = self.simple_consensus(left_seq, right_seq)
-
-            else:
-                # If we are using pear to generate the consensus.
-                consensus_seq = seq
+            consensus_seq = seq
 
             # Consensus sequence creation failed.
             if not consensus_seq:
@@ -537,7 +463,6 @@ class ScarSearch:
             self.log.error("sgRNA {} does not map to locus {}; chr{}:{}-{}.  Check --TargetFile and try again."
                            .format(sgrna, target_name, chrm, start, stop))
             raise SystemExit(1)
-            os._exit(1)
 
     def gapped_aligner(self, fasta_data):
         """
@@ -740,130 +665,13 @@ class DataProcessing:
 
         self.log.info("All Files Compressed")
 
-    def demultiplex(self):
-        """
-        Finds reads by index.  Handles writing demultiplexed FASTQ if user desired.
-        """
-        self.log.info("Index Search")
-        eof = False
-        start_time = time.time()
-        split_time = time.time()
-        fastq_file_name_list = []
-        fastq_data_dict = collections.defaultdict(lambda: collections.defaultdict(list))
-        while not eof:
-            # Debugging Code Block
-            if self.args.Verbose == "DEBUG":
-                read_limit = 500000
-                if self.read_count > read_limit:
-                    if self.args.Demultiplex:
-                        for index_name in fastq_data_dict:
-                            r1_data = fastq_data_dict[index_name]["R1"]
-                            r2_data = fastq_data_dict[index_name]["R2"]
-                            r1, r2 = self.fastq_outfile_dict[index_name]
-                            r1.write(r1_data)
-                            r2.write(r2_data)
-                            r1.close()
-                            r2.close()
-                    Tool_Box.debug_messenger("Limiting Reads Here to {}".format(read_limit))
-                    eof = True
-
-            try:
-                fastq1_read = next(self.fastq1.seq_read())
-                fastq2_read = next(self.fastq2.seq_read())
-
-            except StopIteration:
-                if self.args.Demultiplex:
-                    for index_name in fastq_data_dict:
-                        r1_data = fastq_data_dict[index_name]["R1"]
-                        r2_data = fastq_data_dict[index_name]["R2"]
-                        r1, r2 = self.fastq_outfile_dict[index_name]
-                        r1.write(r1_data)
-                        r2.write(r2_data)
-                        r1.close()
-                        r2.close()
-                eof = True
-                continue
-
-            self.read_count += 1
-            if self.read_count % 100000 == 0:
-                elapsed_time = int(time.time() - start_time)
-                block_time = int(time.time() - split_time)
-                split_time = time.time()
-                self.log.info("Processed {} reads in {} seconds.  Total elapsed time: {} seconds."
-                              .format(self.read_count, block_time, elapsed_time))
-
-            # Match read with library index.
-            match_found, left_seq, right_seq, index_name, fastq1_read, fastq2_read = \
-                self.index_matching(fastq1_read, fastq2_read)
-
-            if match_found:
-                locus = self.index_dict[index_name][7]
-                phase_key = "{}+{}".format(index_name, locus)
-                r2_found = False
-                r1_found = False
-                if self.args.Platform == "Illumina":
-                    # Score the phasing and place the reads in a dictionary.
-                    for r2_phase, r1_phase in zip(self.phase_dict[locus]["R2"], self.phase_dict[locus]["R1"]):
-                        r2_phase_name = r2_phase[1]
-                        r1_phase_name = r1_phase[1]
-                        self.phase_count[phase_key]["Phase " + r1_phase_name] += 0
-                        self.phase_count[phase_key]["Phase " + r2_phase_name] += 0
-
-                        if r2_phase[0] == left_seq[:len(r2_phase[0])] and not r2_found:
-                            self.phase_count[phase_key]["Phase "+r2_phase_name] += 1
-                            r2_found = True
-
-                        if r1_phase[0] == right_seq[:len(r1_phase[0])] and not r1_found:
-                            self.phase_count[phase_key]["Phase "+r1_phase_name] += 1
-                            r1_found = True
-                    # if no phasing is found then note that.
-                    if not r2_found:
-                        self.phase_count[phase_key]["No Read 2 Phasing"] += 1
-                    if not r1_found:
-                        self.phase_count[phase_key]["No Read 1 Phasing"] += 1
-
-                    # The adapters on AAVS1.1 are reversed causing the reads to be reversed.
-                    if locus == "AAVS1.1":
-                        self.sequence_dict[index_name].append([left_seq, right_seq])
-                    else:
-                        self.sequence_dict[index_name].append([right_seq, left_seq])
-
-                elif self.args.Platform == "Ramsden":
-                    self.sequence_dict[index_name].append([left_seq, right_seq])
-                else:
-                    self.log.error("--Platform {} not correctly defined.  Edit parameter file and try again"
-                                   .format(self.args.Platform))
-                    raise SystemExit(1)
-
-                if self.args.Demultiplex:
-                    fastq_data_dict[index_name]["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
-                    fastq_data_dict[index_name]["R2"].append([fastq2_read.name, fastq2_read.seq, fastq2_read.qual])
-                    fastq_file_name_list.append("{}{}_{}_R1.fastq"
-                                                .format(self.args.WorkingFolder, self.args.Job_Name, index_name))
-                    fastq_file_name_list.append("{}{}_{}_R2.fastq"
-                                                .format(self.args.WorkingFolder, self.args.Job_Name, index_name))
-
-            elif self.args.Demultiplex and not match_found:
-                fastq_data_dict['unknown']["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
-                fastq_data_dict['unknown']["R2"].append([fastq2_read.name, fastq2_read.seq, fastq2_read.qual])
-                fastq_file_name_list.append("{}{}_unknown_R1.fastq"
-                                            .format(self.args.WorkingFolder, self.args.Job_Name))
-                fastq_file_name_list.append("{}{}_unknown_R2.fastq"
-                                            .format(self.args.WorkingFolder, self.args.Job_Name))
-
-        if self.args.Demultiplex:
-            self.fastq_compress(list(set(fastq_file_name_list)))
-
     def main_loop(self):
         """
         Main entry point for repair scar search and processing.
         """
 
         self.log.info("Beginning main loop|Demultiplexing FASTQ")
-        if self.args.PEAR:
-            self.consensus_demultiplex()
-        else:
-            self.demultiplex()
+        self.consensus_demultiplex()
 
         self.log.info("Spawning {} Jobs to Process {} Libraries".format(self.args.Spawn, len(self.sequence_dict)))
         p = pathos.multiprocessing.Pool(int(self.args.Spawn))
@@ -890,7 +698,7 @@ class DataProcessing:
 
         self.log.info("Building DataFrames.")
 
-        # If we are demultiplexing the input FASTQ then setup the output files and dataframe.
+        # If we are saving the demultipled FASTQ then setup the output files and dataframe.
         if self.args.Demultiplex:
             self.fastq_outfile_dict = collections.defaultdict(list)
             r1 = FASTQ_Tools.Writer(self.log, "{}{}_unknown_R1.fastq"
@@ -899,6 +707,7 @@ class DataProcessing:
                                     .format(self.args.WorkingFolder, self.args.Job_Name))
             self.fastq_outfile_dict['unknown'] = [r1, r2]
 
+        # ToDo: call the demultiplex stuff from FASTQ_Tools.
         master_index_dict = {}
         with open(self.args.Master_Index_File) as f:
             for l in f:
@@ -914,7 +723,7 @@ class DataProcessing:
             index_name = sample[0]
 
             if index_name in index_dict:
-                self.log.error("The index {0} is duplicated.  Correct the error in {1} and try again."
+                self.log.error("The index {} is duplicated.  Correct the error in {} and try again."
                                .format(sample[0], self.args.SampleManifest))
                 raise SystemExit(1)
 
@@ -930,33 +739,7 @@ class DataProcessing:
             index_dict[index_name] = \
                 [right_index_sequence.upper(), 0, left_index_sequence.upper(), 0, index_name, sample_name,
                  sample_replicate, target_name]
-            '''
-            if self.args.Platform == "Illumina":
-                left_index_sequence, right_index_sequence = master_index_dict[index_name]
-                index_dict[index_name] = \
-                    [right_index_sequence.upper(), 0, left_index_sequence.upper(), 0, index_name, sample_name,
-                     sample_replicate, target_name]
 
-            elif self.args.Platform == "Ramsden":
-                # This is for the Ramsden indexing primers.
-                left_index_len = 6
-                right_index_len = 6
-                left_index_sequence, right_index_sequence = master_index_dict[index_name]
-
-                for left, right in zip(left_index_sequence, right_index_sequence):
-                    if left.islower():
-                        left_index_len += 1
-                    if right.islower():
-                        right_index_len += 1
-
-                index_dict[index_name] = \
-                    [Sequence_Magic.rcomp(right_index_sequence.upper()), right_index_len, left_index_sequence.upper(),
-                     left_index_len, index_name, sample_name, sample_replicate, target_name]
-
-            else:
-                self.log.error("Only 'Illumina' or 'Ramsden' --Platform methods currently allowed.")
-                raise SystemExit(1)
-            '''
             if self.args.Demultiplex:
                 r1 = FASTQ_Tools.Writer(self.log, "{}{}_{}_R1.fastq"
                                         .format(self.args.WorkingFolder, self.args.Job_Name, index_name))
@@ -967,46 +750,6 @@ class DataProcessing:
                 self.fastq_outfile_dict[index_name] = [r1, r2]
 
         return index_dict
-
-    @staticmethod
-    def gapped_aligner(log, fasta_data, consensus=False):
-        """
-        This approach is depreciated.
-        Generates and returns a gapped alignment from the given FASTA data using Muscle.
-        :param: log
-        :param: fasta_data
-        :return:
-        """
-        # Create gapped alignment file in FASTA format using MUSCLE , "-gapopen", "-12"
-        # ToDo: would like to control the gap penalties to better find insertions.
-        cmd = ['muscle', "-quiet", "-maxiters", "1", "-diags"]
-        if consensus:
-            cmd = ['muscle', "-quiet", "-maxiters", "1", "-diags"]
-
-        muscle = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
-
-        output, err = muscle.communicate(input=fasta_data)
-        if err:
-            log.error(err)
-        cat_line = ""
-        first_line = True
-        gapped_alignment_dict = collections.defaultdict(str)
-        key = ""
-        list_output = list(output.splitlines())
-
-        for line in list_output:
-            if ">" in line:
-                if not first_line:
-                    gapped_alignment_dict[key] = cat_line
-                    cat_line = ""
-                first_line = False
-                key = line.split(">")[1].strip("\n")
-            else:
-                cat_line += line.strip("\n")
-
-            gapped_alignment_dict[key] = cat_line
-
-        return gapped_alignment_dict
 
     def index_matching(self, fastq1_read, fastq2_read=None):
         """
@@ -1021,6 +764,9 @@ class DataProcessing:
         right_seq = ""
         index_key = 'unidentified'
         mismatch = 1
+        left_match = 5
+        right_match = 5
+
         if self.args.Platform == "Ramsden":
             mismatch = 3
 

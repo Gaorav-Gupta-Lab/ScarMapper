@@ -16,13 +16,13 @@ import argparse
 import sys
 import time
 import pathos
-from io import StringIO
 from scipy import stats
 from distutils.util import strtobool
 from scipy.stats import gmean
 from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FASTQ_Tools
 import re
-# This is a seriously ugly hack to check the existance and age of the compiled file.
+
+# This is a seriously ugly hack to check the existence and age of the compiled file.
 folder_content = os.listdir("{0}{1}scarmapper{1}".format(os.path.dirname(__file__), os.sep))
 regex_pattern = "SlidingWindow.cpython.*\.so"
 regex = re.compile(regex_pattern)
@@ -41,7 +41,7 @@ if cfile:
         old_file = True
 
 if not cfile or old_file:
-    print("Compiled Module Doesn't Exist or is Old; Compiling Module")
+    print("Compiled Module Doesn't Exist or is Old; Compiling New SlidingWindow Module")
     setup_file = "python3 {0}{1}scarmapper{1}setup.py build_ext --inplace".format(os.path.dirname(__file__), os.sep)
     os.chdir(os.path.dirname(__file__))
     subprocess.run([setup_file], shell=True)
@@ -51,49 +51,8 @@ if not cfile or old_file:
 from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.18.0'
+__version__ = '0.19.0'
 __package__ = 'ScarMapper'
-
-
-def atropos_trim(args, log, method):
-    """
-    Trim adapters from reads with Atropos.  This creates the Atropos config file and runs Atropos.
-    :param args:
-    :param log:
-    :param method:
-    :return:
-    """
-
-    fastq1_trimmed = "{}{}_Trim.R1.fastq.gz".format(args.WorkingFolder, args.Job_Name)
-    trim_report = "{}Atropos_{}_Trim_Report.txt".format(args.WorkingFolder, args.Job_Name)
-
-    fastq2_trimmed = "{}{}_Trim.R2.fastq.gz".format(args.WorkingFolder, args.Job_Name)
-
-    if args.NextSeq_Trim:
-        nextseq_trim = "--nextseq-trim 1"
-        op_order = "--op-order GAWCQ"
-    else:
-        nextseq_trim = ""
-        op_order = "--op-order AWCQ"
-
-    additional_adapters = ""
-    # for adapter in user_sequences:
-    #     additional_adapters += "-a {0}\n-A {0}\n".format(adapter)
-    config_block = \
-        "trim\n--aligner {0}\n--threads {1}\n{2}\n-G file:{3}\n-g file:{3}\n-A file:{4}\n-a file:{4}\n-o {5}\n-p {6}\n" \
-        "-pe1 {7}\n-pe2 {8}\n{14}\n{9}\n--error-rate {10}\n--times 3\n--quality-cutoff 20\n" \
-        "--stats bot\n--read-queue-size {12}\n--result-queue-size {13}\n--report-file {11}\n" \
-            .format(args.Atropos_Aligner, args.Spawn, additional_adapters, args.Anchored_Adapters_5p,
-                    args.Anchored_Adapters_3p, fastq1_trimmed, fastq2_trimmed, args.FASTQ1, args.FASTQ2, nextseq_trim,
-                    args.Adapter_Mismatch_Fraction, trim_report, args.Read_Queue_Size, args.Result_Queue_Size, op_order)
-    config_file = open("{}{}_Atropos_Config.txt".format(args.WorkingFolder, args.Job_Name), "w")
-    config_file.write(config_block)
-    config_file.close()
-
-    log.info("Beginning Atropos Trim of {} library".format(method))
-    subprocess.run("atropos --config {}{}_Atropos_Config.txt".format(args.WorkingFolder, args.Job_Name), shell=True)
-
-    return fastq1_trimmed, fastq2_trimmed
 
 
 def pear_consensus(args, log):
@@ -161,7 +120,7 @@ def main(command_line_args=None):
         command_line_args = sys.argv
 
     run_start = datetime.datetime.today().strftime("%a %b %d %H:%M:%S %Y")
-    parser = argparse.ArgumentParser(description="A package to map genomic repair scars at defined loci.\n {0} v{1}"
+    parser = argparse.ArgumentParser(description="A package to map genomic repair scars at defined loci.\n {} v{}"
                                      .format(__package__, __version__), formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('--options_file', action='store', dest='options_file', required=True,

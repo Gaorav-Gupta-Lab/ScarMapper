@@ -1,37 +1,9 @@
 """
-FASTQ_Tools.py v0.17.6
-    June 9, 2019
-    Dennis A. Simpson
-    The trim to remove HaloPLEX false positives needed to be <=100 nucleotides not <100.
-FASTQ_Tools.py v0.17.5
-    May 19, 2019
-    Dennis A. Simpson
-    Some refactoring and code clean up based on pylint.  Still contains the dead FASTQ Quality class.
-FASTQ_Tools.py v0.17.2
-    March 31, 2019
-    Dennis A. Simpson
-    Added some logic for additional trimming of HaloPLEX libraries.  This logic needs to be exposed to the user.
-FASTQ_Tools.py v0.17.1
-    May 24, 2018
-    Dennis A. Simpson
-    Fix CentOS error in magic.  Tweaked the code in FileWriter to better deal with blocks.
-FASTQ_Tools.py v0.17.0
-    May 4, 2018
-    Dennis A. Simpson
-    Modified write functions to accept list of objects.  Writes to the FASTQ file now every 100,000 reads.
-FASTQ_Tools.py v0.16.0
-    April 15, 2018
-    Dennis A. Simpson
-    Did some code cleaning and fixed bug Sai was having with magic returning bytes on CentOS.
-FASTQ_Tools.py v0.1.0
-    September 26, 2017
-    Dennis A. Simpson
-    File renamed and code refactored.  Uses generators now.  Major performance gain.
-
+Some helpers to make it easier to manipulate FASTQ files.
 @author: Dennis A. Simpson
-         RTP Genomics
+         University of North Carolina at Chapel Hill
          Chapel Hill, NC  27517
-@copyright: 2019
+@copyright: 2020
 """
 import pathlib
 import gzip
@@ -588,7 +560,7 @@ class Writer:
 
 class FASTQ_Reader:
     """
-    Main class that creates FASTQ reads
+    Main class that creates FASTQ reads using a generator
     """
     __slots__ = ['input_file', 'log', 'name', 'seq', 'index', 'qual', 'read_block', 'file_name', 'fq_file']
 
@@ -596,6 +568,7 @@ class FASTQ_Reader:
         """
         Splits the FASTQ read list from the FASTQ Iterator into the lines to be manipulated.  Also does a check to make
         sure the sequence length = quality string length.
+
         :param input_file:
         :return:
         """
@@ -620,7 +593,7 @@ class FASTQ_Reader:
             raise SystemExit(1)
 
         if not pathlib.Path(self.input_file).is_file():
-            self.log.warning("FASTQ file {0} not found.  Correct error and run again.".format(self.input_file))
+            self.log.warning("FASTQ file {} not found.  Correct error and run again.".format(self.input_file))
             raise SystemExit(1)
 
         try:
@@ -633,7 +606,7 @@ class FASTQ_Reader:
         elif "gzip" in mime_type:
             fq_file = gzip.open(self.input_file, 'rt', encoding='utf-8')
         else:
-            self.log.warning("Unsupported file-type for {0}.  Only TEXT or GZIP Allowed.".format(self.input_file))
+            self.log.warning("Unsupported file-type for {}.  Only TEXT or GZIP Allowed.".format(self.input_file))
             raise SystemExit(1)
         return fq_file
 
