@@ -167,8 +167,8 @@ class FastqSplitter:
                 if temp_file2:
                     temp_file2.close()
 
-                file1 = "{0}{1}_R1_tmp_{2}.fastq".format(self.args.Working_Folder, self.args.Job_Name, i)
-                file2 = "{0}{1}_R2_tmp_{2}.fastq".format(self.args.Working_Folder, self.args.Job_Name, i)
+                file1 = "{0}{1}_R1_tmp_{2}.fastq.gz".format(self.args.Working_Folder, self.args.Job_Name, i)
+                file2 = "{0}{1}_R2_tmp_{2}.fastq.gz".format(self.args.Working_Folder, self.args.Job_Name, i)
                 bam_file_list.append("{0}{1}_R1_tmp_{2}.bam".format(self.args.Working_Folder, self.args.Job_Name, i))
                 fastq_file_list.append((file1, file2))
                 temp_file1 = Writer(self.log, file1)
@@ -230,8 +230,8 @@ class FastqSplitter:
 
         self.log.info("Begin writing temporary FASTQ files.")
         current_read_count = 0
-        file1 = "{0}{1}_R1_processed.fastq".format(self.args.Working_Folder, self.args.Job_Name)
-        file2 = "{0}{1}_R2_processed.fastq".format(self.args.Working_Folder, self.args.Job_Name)
+        file1 = "{0}{1}_R1_processed.fastq.gz".format(self.args.Working_Folder, self.args.Job_Name)
+        file2 = "{0}{1}_R2_processed.fastq.gz".format(self.args.Working_Folder, self.args.Job_Name)
         temp_file1 = Writer(self.log, file1)
         temp_file2 = Writer(self.log, file2)
         self.log.info("Writing {0} and {1}".format(file1, file2))
@@ -505,6 +505,7 @@ class Writer:
         :param out_file_string:
         """
         self.file = open(out_file_string, "w")
+        # self.file = gzip.open(out_file_string, "rb")
         self.log = log
 
     def lethal_write(self, read):

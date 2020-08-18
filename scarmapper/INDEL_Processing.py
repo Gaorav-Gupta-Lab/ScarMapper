@@ -485,7 +485,7 @@ class ScarSearch:
         first_line = True
         gapped_alignment_dict = collections.defaultdict(str)
         key = ""
-        # Tool_Box.debug_messenger(output)
+
         list_output = list(output.splitlines())
         consensus_seq = ""
 
@@ -559,7 +559,7 @@ class DataProcessing:
         while not eof:
             # Debugging Code Block
             if self.args.Verbose == "DEBUG":
-                read_limit = 500000
+                read_limit = 1000000
                 if self.read_count > read_limit:
                     if self.args.Demultiplex:
                         for index_name in fastq_data_dict:
@@ -567,12 +567,18 @@ class DataProcessing:
                             r1, r2 = self.fastq_outfile_dict[index_name]
                             r1.write(r1_data)
                             r1.close()
+                            if not self.args.PEAR:
+                                r2_data = fastq_data_dict[index_name]["R2"]
+                                r2.write(r2_data)
+                                r2.close()
 
                     Tool_Box.debug_messenger("Limiting Reads Here to {}".format(read_limit))
                     eof = True
-
+            fastq2_read = None
             try:
                 fastq1_read = next(self.fastq1.seq_read())
+                if not self.args.PEAR:
+                    fastq2_read = next(self.fastq2.seq_read())
 
             except StopIteration:
                 if self.args.Demultiplex:
@@ -581,6 +587,10 @@ class DataProcessing:
                         r1, r2 = self.fastq_outfile_dict[index_name]
                         r1.write(r1_data)
                         r1.close()
+                        if not self.args.PEAR:
+                            r2_data = fastq_data_dict[index_name]["R2"]
+                            r2.write(r2_data)
+                            r2.close()
 
                 eof = True
                 continue
@@ -595,7 +605,7 @@ class DataProcessing:
 
             # Match read with library index.
             match_found, left_seq, right_seq, index_name, fastq1_read, fastq2_read = \
-                self.index_matching(fastq1_read)
+                self.index_matching(fastq1_read, fastq2_read)
 
             if match_found:
                 locus = self.index_dict[index_name][7]
@@ -639,13 +649,18 @@ class DataProcessing:
                     raise SystemExit(1)
 
                 if self.args.Demultiplex:
+                    # fastq_data_dict[index_name]["R1"].append([fastq1_read.name, fastq1_read.seq[15:], fastq1_read.qual[15:]])
                     fastq_data_dict[index_name]["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
+                    if not self.args.PEAR:
+                        # fastq_data_dict[index_name]["R2"].append([fastq2_read.name, fastq2_read.seq, fastq2_read.qual])
+                        fastq_data_dict[index_name]["R2"].append([fastq2_read.name, fastq2_read.seq, fastq2_read.qual])
 
                     fastq_file_name_list.append("{}{}_{}_Consensus.fastq"
                                                 .format(self.args.WorkingFolder, self.args.Job_Name, index_name))
 
             elif self.args.Demultiplex and not match_found:
-                fastq_data_dict['unknown']["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
+                fastq_data_dict['Unknown']["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
+                fastq_data_dict['Unknown']["R2"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
 
                 fastq_file_name_list.append("{}{}_Unknown_Consensus.fastq"
                                             .format(self.args.WorkingFolder, self.args.Job_Name))
@@ -701,11 +716,11 @@ class DataProcessing:
         # If we are saving the demultipled FASTQ then setup the output files and dataframe.
         if self.args.Demultiplex:
             self.fastq_outfile_dict = collections.defaultdict(list)
-            r1 = FASTQ_Tools.Writer(self.log, "{}{}_unknown_R1.fastq"
+            r1 = FASTQ_Tools.Writer(self.log, "{}{}_Unknown_R1.fastq"
                                     .format(self.args.WorkingFolder, self.args.Job_Name))
-            r2 = FASTQ_Tools.Writer(self.log, "{}{}_unknown_R2.fastq"
+            r2 = FASTQ_Tools.Writer(self.log, "{}{}_Unknown_R2.fastq"
                                     .format(self.args.WorkingFolder, self.args.Job_Name))
-            self.fastq_outfile_dict['unknown'] = [r1, r2]
+            self.fastq_outfile_dict['Unknown'] = [r1, r2]
 
         # ToDo: call the demultiplex stuff from FASTQ_Tools.
         master_index_dict = {}
