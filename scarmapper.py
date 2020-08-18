@@ -91,7 +91,8 @@ def pear_consensus(args, log):
                 quality_threshold, phred_value), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
     if proc.stderr:
-        log.error("{}\n{}\n\n".format(proc.stderr.decode(), proc.stdout.decode()))
+        log.error("{}\n{}\n".format(proc.stderr.decode(), proc.stdout.decode()))
+        return
     else:
         log.info(
         "Begin PEAR Output\n"
@@ -141,6 +142,9 @@ def main(command_line_args=None):
 
             if args.PEAR:
                 file_list = pear_consensus(args, log)
+                if not file_list:
+                    log.error("PEAR failed.  Check logs.")
+                    return
                 fastq_consensus = file_list[0]
                 fq1 = FASTQ_Tools.FASTQ_Reader(fastq_consensus, log)
                 fq2 = None
@@ -275,6 +279,7 @@ def string_to_boolean(parser):
     args = options_parser.parse_args()
 
     if args.IndelProcessing == "True":
+        # Tool_Box.debug_messenger("Pear set to false.")
         options_parser.set_defaults(PEAR=True)
         options_parser.set_defaults(Demultiplex=bool(strtobool(args.Demultiplex)))
         options_parser.set_defaults(OutputRawData=bool(strtobool(args.OutputRawData)))
