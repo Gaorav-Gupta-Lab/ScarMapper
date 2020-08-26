@@ -14,10 +14,10 @@ import pathos
 import pysam
 from natsort import natsort
 from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
-from scarmapper import SlidingWindow
+from scarmapper import SlidingWindow, ScarMapperPlot
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.17.0'
+__version__ = '0.19.2'
 __package__ = 'ScarMapper'
 
 
@@ -75,7 +75,6 @@ class ScarSearch:
     def data_processing(self):
         """
         Generate the consensus sequence and find indels.  Write the frequency file.  Called by pathos pool
-
         :return:
         """
 
@@ -124,11 +123,6 @@ class ScarSearch:
 
             consensus_seq = seq
 
-            # Consensus sequence creation failed.
-            if not consensus_seq:
-                self.summary_data[7][1] += 1
-                continue
-
             # No need to attempt an analysis of bad data.
             if consensus_seq.count("N") / len(consensus_seq) > float(self.args.N_Limit):
                 self.summary_data[7][0] += 1
@@ -142,9 +136,8 @@ class ScarSearch:
             '''
             The summary_data list contains information for a single library.  [0] index name; [1] reads passing all 
             filters; [2] left junction count; [3] right junction count; [4] insertion count; [5] microhomology count; 
-            [6] [No junction count, no cut count]; [7] [consensus N + short filtered count, failed consensus 
-            creation count]; [8] junction_type_data list; [9] target name; 10 [HR left junction count, HR right 
-            junction count]
+            [6] [No junction count, no cut count]; [7] [consensus N + short filtered count, unused]; 
+            [8] junction_type_data list; [9] target name; 10 [HR left junction count, HR right junction count]
 
             The junction_type_data list contains the repair type category counts.  [0] TsEJ, del_size >= 4 and 
             microhomology_size >= 2; [1] NHEJ, del_size < 4 and ins_size < 5; [2] insertions >= 5 
@@ -232,7 +225,8 @@ class ScarSearch:
             "Microhomology Size\tInsertion\tInsertion Size\tLeft Template\tRight Template\tConsensus Left Junction\t" \
             "Consensus Right Junction\tTarget Left Junction\tTarget Right Junction\tConsensus\tTarget Region\n"\
             .format(self.common_page_header(index_name))
-
+        output_dict = {}
+        scar_count = 0
         for freq_key in results_freq_dict:
             key_count = results_freq_dict[freq_key][0]
 
@@ -303,10 +297,75 @@ class ScarSearch:
             else:
                 junction_type_data[3] += key_count
 
-            freq_results_outstring += "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n" \
-                .format(key_count, key_frequency, scar_type, lft_del, rt_del, del_size, microhomology,
-                        microhomology_size, insertion, ins_size, lft_template, rt_template, consensus_lft_junction,
-                        consensus_rt_junction, ref_lft_junction, ref_rt_junction, consensus, target_sequence)
+            # Gather up the output data into a dictionary so it can be sorted by count.
+            output_dict[key_count, scar_count] = \
+                [key_count, key_frequency, scar_type, lft_del, rt_del, del_size, microhomology, microhomology_size,
+                 insertion, ins_size, lft_template, rt_template, consensus_lft_junction, consensus_rt_junction,
+                 ref_lft_junction, ref_rt_junction, consensus, target_sequence]
+
+            scar_count += 1
+
+        # Sort the dictionary and format the output file.
+        plot_data_dict = collections.defaultdict(list)
+        marker_list = []
+        label_dict = collections.defaultdict(float)
+        for key in natsort.natsorted(output_dict, reverse=True):
+
+            frequency_row_list = output_dict[key]
+            scar_type = frequency_row_list[2]
+            label_dict[scar_type] += frequency_row_list[1]
+
+            # Plotting all scar patterns is messy.  This provides a cutoff.
+            if frequency_row_list[1] < 0.00025:
+                continue
+
+            y_value = frequency_row_list[1]*0.5
+            lft_ins_width = frequency_row_list[1]
+            rt_ins_width = frequency_row_list[1]
+
+            # This is gathered up to find the largest value.  Used to set the x-axis limits.
+            marker_list.extend([frequency_row_list[3]+(frequency_row_list[7]*0.5),
+                                frequency_row_list[4]+(frequency_row_list[7]*0.5),
+                                frequency_row_list[9]])
+
+            # Deletion size included half the size of any microhomology present.
+            lft_del_plot_value = (frequency_row_list[3]+(frequency_row_list[7]*0.5))*-1
+            rt_del_plot_value = (frequency_row_list[4]+(frequency_row_list[7]*0.5))
+
+            # Insertions are centered on 0 so we need to take half the value for each side.
+            lft_ins_plot_value = (frequency_row_list[9] * 0.5) * -1
+            rt_ins_plot_value = (frequency_row_list[9] * 0.5)
+
+            # Scale the width of bars for insertions inside of deletions
+            if frequency_row_list[3] != 0:
+                lft_ins_width = frequency_row_list[1] * 0.5
+            if frequency_row_list[4] != 0:
+                rt_ins_width = frequency_row_list[1] * 0.5
+
+            # [Bar Width, lft_del_plot_value, rt_del_plot_value, lft_ins_plot_value, rt_ins_plot_value, left ins width, right ins width, y-value]
+            if scar_type not in plot_data_dict:
+                plot_data_dict[scar_type] = \
+                    [[frequency_row_list[1]], [lft_del_plot_value], [rt_del_plot_value], [lft_ins_plot_value],
+                     [rt_ins_plot_value], [lft_ins_width], [rt_ins_width], [y_value]]
+            else:
+                # Get some previous plot data
+                count = len(plot_data_dict[scar_type][0])
+                previous_freq = plot_data_dict[scar_type][0][count - 1]
+                previous_y = plot_data_dict[scar_type][7][count - 1]
+
+                plot_data_dict[scar_type][0].append(frequency_row_list[1])
+                plot_data_dict[scar_type][1].append(lft_del_plot_value)
+                plot_data_dict[scar_type][2].append(rt_del_plot_value)
+                plot_data_dict[scar_type][3].append(lft_ins_plot_value)
+                plot_data_dict[scar_type][4].append(rt_ins_plot_value)
+                plot_data_dict[scar_type][5].append(lft_ins_width)
+                plot_data_dict[scar_type][6].append(rt_ins_width)
+
+                # Use the previous plot data to find the y-value of the current bar.
+                plot_data_dict[scar_type][7] \
+                    .append(previous_y + 0.002 + (0.5 * previous_freq) + y_value)
+
+            freq_results_outstring += "{}\n".format("\t".join(str(n) for n in frequency_row_list))
 
         freq_results_file = \
             open("{}{}_{}_ScarMapper_Frequency.txt"
@@ -317,6 +376,13 @@ class ScarSearch:
 
         # add the junction list to the summary data
         self.summary_data[8] = junction_type_data
+
+        # Now draw a pretty graph of the data if we are not dealing with a negative control.
+        if (self.summary_data[1]-self.summary_data[6][1]-self.summary_data[6][0])/self.summary_data[1] > 0.1:
+            plot_data_dict['Marker'] = [(max(marker_list)) * -1, max(marker_list)]
+            sample_name = "{}.{}".format(self.index_dict[index_name][5], self.index_dict[index_name][6])
+            ScarMapperPlot.scarmapperplot(self.args, datafile=None, sample_name=sample_name,
+                                          plot_data_dict=plot_data_dict, label_dict=label_dict)
 
     def templated_insertion_search(self, insertion, lft_target_junction, rt_target_junction, target_name):
         """
@@ -549,8 +615,6 @@ class DataProcessing:
         user desired.
         """
         self.log.info("Consensus Index Search")
-        # fastq1_short_count = 0
-        # fastq2_short_count = 0
         eof = False
         start_time = time.time()
         split_time = time.time()
@@ -616,10 +680,18 @@ class DataProcessing:
 
                     # Score the phasing and place the reads in a dictionary.
                     for r2_phase, r1_phase in zip(self.phase_dict[locus]["R2"], self.phase_dict[locus]["R1"]):
+
                         r2_phase_name = r2_phase[1]
                         r1_phase_name = r1_phase[1]
-                        self.phase_count[phase_key]["Phase " + r1_phase_name] += 0
-                        self.phase_count[phase_key]["Phase " + r2_phase_name] += 0
+
+                        # Tag reads that should not have any phasing.
+                        if not r1_phase[0]:
+                            self.phase_count[phase_key]["Phase " + r1_phase_name] = -1
+                            self.phase_count[phase_key]["Phase " + r2_phase_name] = -1
+                            continue
+                        else:
+                            self.phase_count[phase_key]["Phase " + r1_phase_name] += 0
+                            self.phase_count[phase_key]["Phase " + r2_phase_name] += 0
 
                         # The phasing is the last N nucleotides of the consensus.
                         if r2_phase[0] == Sequence_Magic.rcomp(fastq1_read.seq[-len(r2_phase[0]):]) and not r2_found:
@@ -848,11 +920,13 @@ class DataProcessing:
 
         phasing_labels = ""
         phase_label_list = []
+
         for locus in self.phase_count:
-            for phase_label in natsort.natsorted(self.phase_count[locus]):
-                phasing_labels += "{}\t".format(phase_label)
-                phase_label_list.append(phase_label)
-            break
+            if len(natsort.natsorted(self.phase_count[locus])) > 4:
+                for phase_label in natsort.natsorted(self.phase_count[locus]):
+                    phasing_labels += "{}\t".format(phase_label)
+                    phase_label_list.append(phase_label)
+                break
 
         hr_data = ""
         if self.args.HR_Donor:
@@ -865,7 +939,7 @@ class DataProcessing:
 
         summary_outstring += \
             "Index Name\tSample Name\tSample Replicate\tTarget\tTotal Found\tFraction Total\tPassing Read Filters\t" \
-            "Fraction Passing Filters\t{}Consensus Fail\t" \
+            "Fraction Passing Filters\t{}" \
             "{}\tTsEJ\tNormalized TsEJ\tNHEJ\tNormalized NHEJ\tNon-Microhomology Deletions\tNormalized Non-MH Del\t" \
             "Insertion >=5 +/- Deletions\tNormalized Insertion >=5+/- Deletions\tOther Scar Type\n"\
             .format(phasing_labels, sub_header)
@@ -893,11 +967,16 @@ class DataProcessing:
             phase_key = "{}+{}".format(index_name, target)
 
             phase_data = ""
+            loop_count = 0
             for phase in natsort.natsorted(self.phase_count[phase_key]):
-                phase_data += "{}\t".format(self.phase_count[phase_key][phase]/library_read_count)
+                if len(self.phase_count[phase_key]) <= 4 and loop_count < 1:
+                    loop_count += 1
+                    for i in range(len(phase_label_list)):
+                        phase_data += "n.a.\t"
+                elif len(self.phase_count[phase_key]) > 4:
+                    phase_data += "{}\t".format(self.phase_count[phase_key][phase]/library_read_count)
 
             no_junction = data_list.summary_data[6][0]
-            con_fail = data_list.summary_data[7][1]
 
             try:
                 cut_fraction = cut/passing_filters
@@ -937,10 +1016,10 @@ class DataProcessing:
                 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}{}\t{}\t{}\t{}{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t" \
                 "{}\t{}\n"\
                 .format(index_name, sample_name, sample_replicate, target, library_read_count, fraction_all_reads,
-                        passing_filters, fraction_passing, phase_data, con_fail,
-                        no_junction, cut, cut_fraction, hr_data, left_del, right_del, total_ins,
-                        microhomology, microhomology_fraction, tmej, tmej_fraction, nhej, nhej_fraction,
-                        non_microhomology_del, non_mh_del_fraction, large_ins, large_ins_fraction, other_scar)
+                        passing_filters, fraction_passing, phase_data, no_junction, cut, cut_fraction, hr_data,
+                        left_del, right_del, total_ins, microhomology, microhomology_fraction, tmej, tmej_fraction,
+                        nhej, nhej_fraction, non_microhomology_del, non_mh_del_fraction, large_ins, large_ins_fraction,
+                        other_scar)
 
         summary_outstring += "\nUnidentified\t{}\t{}" \
             .format(self.read_count_dict["unidentified"], self.read_count_dict["unidentified"] / self.read_count)
