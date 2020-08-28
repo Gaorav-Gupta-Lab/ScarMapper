@@ -15,8 +15,6 @@ from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.patches as mpatches
 import collections
 import numpy
-import scipy.spatial.distance as ssd
-import scipy.cluster.hierarchy as sch
 import Valkyries.Tool_Box as ToolBox
 
 __author__ = 'Dennis A. Simpson'

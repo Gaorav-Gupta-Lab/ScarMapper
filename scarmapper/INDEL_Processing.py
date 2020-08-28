@@ -1,5 +1,4 @@
 """
-
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599

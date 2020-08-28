@@ -1,6 +1,6 @@
 #!/bin/bash
 #Parameter file to run ScarMapper Pipeline
-#File generated 2020-06-08
+#File generated 28-Aug-2020
 
 python3 /full/path/to/scarmapper.py --options_file /full/path/to/run_ScarMapper_IndelProcessins.sh
 exit
