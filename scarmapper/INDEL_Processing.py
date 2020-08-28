@@ -1,5 +1,4 @@
 """
-
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599
@@ -12,17 +11,20 @@ import subprocess
 import time
 import pathos
 import pysam
+from scipy import stats
 from natsort import natsort
+import statistics
 from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow, ScarMapperPlot
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.19.2'
+__version__ = '0.19.3'
 __package__ = 'ScarMapper'
 
 
 class ScarSearch:
-    def __init__(self, log, args, version, run_start, target_dict, index_dict, index_name, sequence_list):
+    def __init__(self, log, args, version, run_start, target_dict, index_dict, index_name, sequence_list,
+                 indexed_read_count, lower_limit_count):
         self.log = log
         self.args = args
         self.version = version
@@ -31,6 +33,8 @@ class ScarSearch:
         self.index_dict = index_dict
         self.index_name = index_name
         self.sequence_list = sequence_list
+        self.lower_limit_count = lower_limit_count
+        self.indexed_read_count = indexed_read_count
         self.summary_data = None
         self.target_region = ""
         self.cutsite = None
@@ -342,7 +346,8 @@ class ScarSearch:
             if frequency_row_list[4] != 0:
                 rt_ins_width = frequency_row_list[1] * 0.5
 
-            # [Bar Width, lft_del_plot_value, rt_del_plot_value, lft_ins_plot_value, rt_ins_plot_value, left ins width, right ins width, y-value]
+            # [Bar Width, lft_del_plot_value, rt_del_plot_value, lft_ins_plot_value, rt_ins_plot_value, left ins width,
+            # right ins width, y-value]
             if scar_type not in plot_data_dict:
                 plot_data_dict[scar_type] = \
                     [[frequency_row_list[1]], [lft_del_plot_value], [rt_del_plot_value], [lft_ins_plot_value],
@@ -378,7 +383,9 @@ class ScarSearch:
         self.summary_data[8] = junction_type_data
 
         # Now draw a pretty graph of the data if we are not dealing with a negative control.
-        if (self.summary_data[1]-self.summary_data[6][1]-self.summary_data[6][0])/self.summary_data[1] > 0.1:
+        scar_fraction = \
+            (self.summary_data[1] - self.summary_data[6][1] - self.summary_data[6][0]) / self.summary_data[1]
+        if self.summary_data[1] >= self.lower_limit_count and scar_fraction > 0.1:
             plot_data_dict['Marker'] = [(max(marker_list)) * -1, max(marker_list)]
             sample_name = "{}.{}".format(self.index_dict[index_name][5], self.index_dict[index_name][6])
             ScarMapperPlot.scarmapperplot(self.args, datafile=None, sample_name=sample_name,
@@ -620,6 +627,8 @@ class DataProcessing:
         split_time = time.time()
         fastq_file_name_list = []
         fastq_data_dict = collections.defaultdict(lambda: collections.defaultdict(list))
+        indexed_read_count = 0
+        key_counts = []
         while not eof:
             # Debugging Code Block
             if self.args.Verbose == "DEBUG":
@@ -672,6 +681,7 @@ class DataProcessing:
                 self.index_matching(fastq1_read, fastq2_read)
 
             if match_found:
+                indexed_read_count += 1
                 locus = self.index_dict[index_name][7]
                 phase_key = "{}+{}".format(index_name, locus)
                 r2_found = False
@@ -740,6 +750,14 @@ class DataProcessing:
         if self.args.Demultiplex:
             self.fastq_compress(list(set(fastq_file_name_list)))
 
+        for key in self.sequence_dict:
+            key_counts.append(len(self.sequence_dict[key]))
+
+        lower, upper_limit = stats.norm.interval(0.9, loc=statistics.mean(key_counts), scale=stats.sem(key_counts))
+        lower_limit = statistics.mean(key_counts)-lower
+
+        return indexed_read_count, lower_limit
+
     def fastq_compress(self, fastq_file_name_list):
         """
         Take a list of file names and gzip each file.
@@ -758,7 +776,7 @@ class DataProcessing:
         """
 
         self.log.info("Beginning main loop|Demultiplexing FASTQ")
-        self.consensus_demultiplex()
+        indexed_read_count, lower_limit = self.consensus_demultiplex()
 
         self.log.info("Spawning {} Jobs to Process {} Libraries".format(self.args.Spawn, len(self.sequence_dict)))
         p = pathos.multiprocessing.Pool(int(self.args.Spawn))
@@ -767,7 +785,7 @@ class DataProcessing:
         data_list = []
         for key in sorted(self.sequence_dict, key=lambda k: len(self.sequence_dict[k]), reverse=True):
             data_list.append([self.log, self.args, self.version, self.run_start, self.target_dict, self.index_dict,
-                              key, self.sequence_dict[key]])
+                              key, self.sequence_dict[key], indexed_read_count, lower_limit])
 
         # Not sure if clearing this is really necessary but it is not used again so why keep the RAM tied up.
         self.sequence_dict.clear()
