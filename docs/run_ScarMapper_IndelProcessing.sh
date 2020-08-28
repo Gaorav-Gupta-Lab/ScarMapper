@@ -14,7 +14,6 @@ exit
 --Master_Index_File	/full/path/to/Master_Index_File
 --SampleManifest	/full/path/to/SampleManifest.csv
 --TargetFile	/full/path/to/Target_File.txt
---PrimerPhasingFile	/full/path/to/PrimerPhasing.csv
 
 --WorkingFolder	/full/path/to/Working_Folder/<Location of output files>
 
@@ -36,3 +35,5 @@ exit
 --QualityThreshold	# Default 40
 --PhredValue	# Default 33
 
+# Plot Options
+--FigureType	pdf # svg, jpg, tiff, pdf, png
