@@ -50,7 +50,11 @@ if not cfile or old_file:
 from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
 
 __author__ = 'Dennis A. Simpson'
+<<<<<<< HEAD
 __version__ = '0.21.3'
+=======
+__version__ = '0.21.2'
+>>>>>>> development
 __package__ = 'ScarMapper'
 
 
@@ -150,7 +154,10 @@ def main(command_line_args=None):
             else:
                 fq2 = FASTQ_Tools.FASTQ_Reader(args.FASTQ2, log)
                 fq1 = FASTQ_Tools.FASTQ_Reader(args.FASTQ1, log)
+<<<<<<< HEAD
 
+=======
+>>>>>>> development
             sample_manifest = Tool_Box.FileParser.indices(log, args.SampleManifest)
             indel_processing = \
                 Indel_Processing.DataProcessing(log, args, run_start, __version__,

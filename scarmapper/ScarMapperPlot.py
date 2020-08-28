@@ -8,17 +8,29 @@ Draws main figures for ScarMapper
 """
 
 import argparse
+<<<<<<< HEAD
 from contextlib import suppress
+=======
+>>>>>>> development
 import pandas
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.patches as mpatches
 import collections
 import numpy
+<<<<<<< HEAD
 import Valkyries.Tool_Box as ToolBox
 
 __author__ = 'Dennis A. Simpson'
 __version__ = '0.1.2'
+=======
+import scipy.spatial.distance as ssd
+import scipy.cluster.hierarchy as sch
+import Valkyries.Tool_Box as ToolBox
+
+__author__ = 'Dennis A. Simpson'
+__version__ = '0.1.1'
+>>>>>>> development
 
 
 def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, label_dict=None):
@@ -69,6 +81,7 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     y_nhej = plot_data_dict['NHEJ'][7]
 
     # Common TsEJ
+<<<<<<< HEAD
     width_tmej = ""
     x_lft_del_tmej = ""
     x_rt_del_tmej = ""
@@ -86,6 +99,16 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
         l_ins_width_tmej = plot_data_dict['TsEJ'][5]
         r_ins_width_tmej = plot_data_dict['TsEJ'][6]
         y_tmej = plot_data_dict['TsEJ'][7]
+=======
+    width_tmej = plot_data_dict['TsEJ'][0]
+    x_lft_del_tmej = plot_data_dict['TsEJ'][1]
+    x_rt_del_tmej = plot_data_dict['TsEJ'][2]
+    x_lft_ins_tmej = plot_data_dict['TsEJ'][3]
+    x_rt_ins_tmej = plot_data_dict['TsEJ'][4]
+    l_ins_width_tmej = plot_data_dict['TsEJ'][5]
+    r_ins_width_tmej = plot_data_dict['TsEJ'][6]
+    y_tmej = plot_data_dict['TsEJ'][7]
+>>>>>>> development
 
     # Common non-MH deletion
     width_non_mh_del = plot_data_dict['Non-MH Deletion'][0]
@@ -106,6 +129,7 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     color_not_polq = color_dict['TMEJ_Not-PolQ']
     '''
     # Common Insertions
+<<<<<<< HEAD
     width_ins = ""
     x_lft_del_insertion = ""
     x_rt_del_insertion = ""
@@ -125,6 +149,16 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
         y_ins = plot_data_dict['Insertion'][7]
     except IndexError:
         ToolBox.debug_messenger(sample_name)
+=======
+    width_ins = plot_data_dict['Insertion'][0]
+    x_lft_del_insertion = plot_data_dict['Insertion'][1]
+    x_rt_del_insertion = plot_data_dict['Insertion'][2]
+    x_lft_ins_insertion = plot_data_dict['Insertion'][3]
+    x_rt_ins_insertion = plot_data_dict['Insertion'][4]
+    l_ins_width_insertion = plot_data_dict['Insertion'][5]
+    r_ins_width_insertion = plot_data_dict['Insertion'][6]
+    y_ins = plot_data_dict['Insertion'][7]
+>>>>>>> development
 
     # Set the limits of the x-axis for all plots
     ax[3].set_xlim(plot_data_dict['Marker'][0], plot_data_dict['Marker'][1])
