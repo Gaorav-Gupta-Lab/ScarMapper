@@ -18,11 +18,7 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow, ScarMapperPlot
 
 __author__ = 'Dennis A. Simpson'
-<<<<<<< HEAD
 __version__ = '0.19.3'
-=======
-__version__ = '0.19.2'
->>>>>>> development
 __package__ = 'ScarMapper'
 
 
@@ -350,12 +346,8 @@ class ScarSearch:
             if frequency_row_list[4] != 0:
                 rt_ins_width = frequency_row_list[1] * 0.5
 
-<<<<<<< HEAD
             # [Bar Width, lft_del_plot_value, rt_del_plot_value, lft_ins_plot_value, rt_ins_plot_value, left ins width,
             # right ins width, y-value]
-=======
-            # [Bar Width, lft_del_plot_value, rt_del_plot_value, lft_ins_plot_value, rt_ins_plot_value, left ins width, right ins width, y-value]
->>>>>>> development
             if scar_type not in plot_data_dict:
                 plot_data_dict[scar_type] = \
                     [[frequency_row_list[1]], [lft_del_plot_value], [rt_del_plot_value], [lft_ins_plot_value],
@@ -391,13 +383,9 @@ class ScarSearch:
         self.summary_data[8] = junction_type_data
 
         # Now draw a pretty graph of the data if we are not dealing with a negative control.
-<<<<<<< HEAD
         scar_fraction = \
             (self.summary_data[1] - self.summary_data[6][1] - self.summary_data[6][0]) / self.summary_data[1]
         if self.summary_data[1] >= self.lower_limit_count and scar_fraction > 0.1:
-=======
-        if (self.summary_data[1]-self.summary_data[6][1]-self.summary_data[6][0])/self.summary_data[1] > 0.1:
->>>>>>> development
             plot_data_dict['Marker'] = [(max(marker_list)) * -1, max(marker_list)]
             sample_name = "{}.{}".format(self.index_dict[index_name][5], self.index_dict[index_name][6])
             ScarMapperPlot.scarmapperplot(self.args, datafile=None, sample_name=sample_name,
