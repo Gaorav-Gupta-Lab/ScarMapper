@@ -951,7 +951,8 @@ class DataProcessing:
             hr_data = "HR Donor: {}\n".format(self.args.HR_Donor)
 
         run_stop = datetime.datetime.today().strftime(self.date_format)
-        summary_outstring = "ScarMapper {}\nStart: {}\nEnd: {}\nFASTQ1: {}\nFASTQ2: {}\nReads Analyzed: {}\n{}\n"\
+        summary_outstring = \
+            "ScarMapper v{}\nStart: {}\nEnd: {}\nFASTQ1: {}\nFASTQ2: {}\nConsensus Reads Analyzed: {}\n{}\n"\
             .format(self.version, self.run_start, run_stop, self.args.FASTQ1, self.args.FASTQ2, self.read_count,
                     hr_data)
 

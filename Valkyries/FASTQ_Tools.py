@@ -637,9 +637,9 @@ class FASTQ_Reader:
         if len(read_block) == 4 and not eof:
 
             self.name = read_block[0].strip("\n").strip("@")
-            self.seq = read_block[1].strip("\n").strip()
+            self.seq = read_block[1].strip("\n").strip()[5:]
             self.index = read_block[2].strip("\n").strip()
-            self.qual = read_block[3].strip("\n").strip()
+            self.qual = read_block[3].strip("\n").strip()[5:]
 
             if len(self.seq) != len(self.qual):
                 self.log.error("Sequence and quality scores of different lengths! \n{0:s}\n{1:s}\n{2:s}\n{3:s}"
