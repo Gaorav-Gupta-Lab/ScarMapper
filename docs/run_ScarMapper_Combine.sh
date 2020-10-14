@@ -1,19 +1,20 @@
 #!/bin/bash
 #Parameter file to run ScarMapper Combine module
-#File generated 2020-03-21
+#File generated 13-Oct-2020
 
 
 python3 /full/path/to/scarmapper.py --options_file /full/path/to/run_ScarMapper_Combine.sh
 exit
 
-
 --IndelProcessing	False
 
---SampleManifest	/full/path/to/SampleManifest_File.csv
---WorkingFolder	/full/path/to/working/folder/
---DataFiles	/full/path/to/data/files/
+--WorkingFolder	/full/path/to/file/save/location/
+--SampleName	# Labels plot
+--DataFiles	/full/path/to/frequency/files/
+
+# Plot Options
+--FigureType	pdf # svg, jpg, tiff, pdf
 
 --Verbose	INFO
---Job_Name	# Use same Job Name as original Indel Processing run.
---SampleName	# This will be part of the output file name
+--Job_Name	# Labels output file
 

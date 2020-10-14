@@ -56,7 +56,7 @@ class TargetMapper:
             forward_phase_length = int(forward_seq_length*0.5)
             reverse_phase_length = int(reverse_seq_length*0.5)
             f_left_position = forward_seq_length - forward_phase_length
-            r_left_position =  reverse_seq_length - reverse_phase_length
+            r_left_position = reverse_seq_length - reverse_phase_length
 
             for i in range(forward_phase_length+1):
                 f_phase = "F{}".format(i)
