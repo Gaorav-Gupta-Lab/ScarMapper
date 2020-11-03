@@ -15,6 +15,8 @@ Cython version of Sliding Window Module
 
 __version__ = "0.5.0"
 
+from Valkyries import Tool_Box
+
 cpdef sliding_window(str consensus, str target_region, int cutsite, int target_length, int lower_limit, int upper_limit,
                      object summary_data, list left_target_windows, list right_target_windows, str cutwindow,
                      str hr_donor):
@@ -110,8 +112,13 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
             rt_position+=1
             lft_position+=1
 
-        # If HR Donor is found then find but do not score INDELS
+        hr_label = ""
         if donor_found:
+            hr_label = "HR"
+        # If HR Donor is found then find but do not score INDELS
+        bypass = False
+        # if donor_found:
+        if bypass:
             # extract the insertion
             consensus_insertion = ""
             if 0 < consensus_lft_junction < consensus_rt_junction:
@@ -160,4 +167,4 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
         return [], summary_data
 
 
-    return [ldel, rdel, consensus_insertion, consensus_microhomology, consensus, consensus_lft_junction, consensus_rt_junction, target_lft_junction, target_rt_junction, ""], summary_data
+    return [ldel, rdel, consensus_insertion, consensus_microhomology, consensus, consensus_lft_junction, consensus_rt_junction, target_lft_junction, target_rt_junction, hr_label], summary_data
