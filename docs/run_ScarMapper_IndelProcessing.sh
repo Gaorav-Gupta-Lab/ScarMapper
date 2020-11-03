@@ -1,6 +1,6 @@
 #!/bin/bash
 #Parameter file to run ScarMapper Pipeline
-#File generated 28-Aug-2020
+#File generated 14-Oct-2020
 
 python3 /full/path/to/scarmapper.py --options_file /full/path/to/run_ScarMapper_IndelProcessins.sh
 exit
@@ -14,13 +14,13 @@ exit
 --Master_Index_File	/full/path/to/Master_Index_File
 --SampleManifest	/full/path/to/SampleManifest.csv
 --TargetFile	/full/path/to/Target_File.txt
-
 --WorkingFolder	/full/path/to/Working_Folder/<Location of output files>
 
 --Verbose	# INFO or DEBUG
 --Job_Name	# No spaces or special characters, prepended to output files.
 --Spawn	3 # How many parallel jobs?  Max should be n-1 threads or cpu's.  Minimum is 1.
 --Demultiplex	# True or False.  Write demultiplexed FASTQ files?
+--DeleteConsensusFASTQ	True
 --HR_Donor	# 10 - 15 nucleotide sequence for HR Donor search.  Can be left blank. 
 --Platform	# Illumina, Ramsden
 
@@ -29,6 +29,7 @@ exit
 --OutputRawData	False # True or False.  Output raw data files.
 
 # PEAR Options.  Leave blank for defaults
+--TestMethod	
 --PValue	# Default 0.01
 --Memory	# Default 200M.  Recomend >1000M
 --MinOverlap	# Default 10

@@ -18,7 +18,7 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow, ScarMapperPlot
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.19.3'
+__version__ = '0.20.0'
 __package__ = 'ScarMapper'
 
 
@@ -43,12 +43,13 @@ class ScarSearch:
         self.target_length = None
         self.left_target_windows = []
         self.right_target_windows = []
-
+        '''
         if self.target_dict[index_dict[index_name][7]][5] == "YES":
             self.hr_donor = Sequence_Magic.rcomp(args.HR_Donor)
         else:
             self.hr_donor = args.HR_Donor
-
+        '''
+        self.hr_donor = args.HR_Donor
         self.data_processing()
 
     def window_mapping(self):
@@ -143,7 +144,7 @@ class ScarSearch:
             [6] [No junction count, no cut count]; [7] [consensus N + short filtered count, unused]; 
             [8] junction_type_data list; [9] target name; 10 [HR left junction count, HR right junction count]
 
-            The junction_type_data list contains the repair type category counts.  [0] TsEJ, del_size >= 4 and 
+            The junction_type_data list contains the repair type category counts.  [0] TMEJ, del_size >= 4 and 
             microhomology_size >= 2; [1] NHEJ, del_size < 4 and ins_size < 5; [2] insertions >= 5 
             [3] Junctions with scars not represented by the other categories; [4] Non-MH Deletions, del_size >= 4 and 
             microhomology_size < 2 and ins_size < 5
@@ -278,7 +279,7 @@ class ScarSearch:
             # TMEJ counts
             elif del_size >= 4 and microhomology_size >= 2:
                 junction_type_data[0] += key_count
-                scar_type = "TsEJ"
+                scar_type = "TMEJ"
 
             # NHEJ counts
             elif del_size < 4 and ins_size < 5:
@@ -385,9 +386,11 @@ class ScarSearch:
         # Now draw a pretty graph of the data if we are not dealing with a negative control.
         scar_fraction = \
             (self.summary_data[1] - self.summary_data[6][1] - self.summary_data[6][0]) / self.summary_data[1]
+
         if self.summary_data[1] >= self.lower_limit_count and scar_fraction > 0.1:
-            plot_data_dict['Marker'] = [(max(marker_list)) * -1, max(marker_list)]
             sample_name = "{}.{}".format(self.index_dict[index_name][5], self.index_dict[index_name][6])
+            plot_data_dict['Marker'] = [(max(marker_list)) * -1, max(marker_list)]
+
             ScarMapperPlot.scarmapperplot(self.args, datafile=None, sample_name=sample_name,
                                           plot_data_dict=plot_data_dict, label_dict=label_dict)
 
@@ -959,7 +962,7 @@ class DataProcessing:
         summary_outstring += \
             "Index Name\tSample Name\tSample Replicate\tTarget\tTotal Found\tFraction Total\tPassing Read Filters\t" \
             "Fraction Passing Filters\t{}" \
-            "{}\tTsEJ\tNormalized TsEJ\tNHEJ\tNormalized NHEJ\tNon-Microhomology Deletions\tNormalized Non-MH Del\t" \
+            "{}\tTMEJ\tNormalized TMEJ\tNHEJ\tNormalized NHEJ\tNon-Microhomology Deletions\tNormalized Non-MH Del\t" \
             "Insertion >=5 +/- Deletions\tNormalized Insertion >=5+/- Deletions\tOther Scar Type\n"\
             .format(phasing_labels, sub_header)
 

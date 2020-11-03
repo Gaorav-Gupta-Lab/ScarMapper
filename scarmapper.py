@@ -51,7 +51,7 @@ if not cfile or old_file:
 from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.22.0'
+__version__ = '0.22.1'
 __package__ = 'ScarMapper'
 
 
