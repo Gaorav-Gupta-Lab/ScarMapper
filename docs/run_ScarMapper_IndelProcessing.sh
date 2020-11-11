@@ -1,6 +1,6 @@
 #!/bin/bash
 #Parameter file to run ScarMapper Pipeline
-#File generated 28-Aug-2020
+#File generated 11-Nov-2020
 
 python3 /full/path/to/scarmapper.py --options_file /full/path/to/run_ScarMapper_IndelProcessins.sh
 exit
@@ -29,11 +29,13 @@ exit
 --OutputRawData	False # True or False.  Output raw data files.
 
 # PEAR Options.  Leave blank for defaults
---PValue	# Default 0.01
---Memory	# Default 200M.  Recomend >1000M
+--TestMethod	
+--PValue	0.05 # Default 0.01
+--Memory	20000M # Default 200M.  Recomend >1000M
 --MinOverlap	# Default 10
 --QualityThreshold	# Default 40
 --PhredValue	# Default 33
+--MinConsensusLength	# Default 50
 
 # Plot Options
 --FigureType	pdf # svg, jpg, tiff, pdf, png

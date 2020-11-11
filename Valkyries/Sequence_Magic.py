@@ -1,19 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Sequence_Magic.py v0.2.0
-    Jan. 12, 2017
-    Dennis A. Simpson
-    Added function to generate list of chromosome names.
-Sequence_Magic.py v0.1.0
-    Dec. 1, 2016
-    Dennis A. Simpson
-    Changed versioning to conform to semantic versioning (http://semver.org/).  Added author, version, package data.
-Created on Fri Dec 18 12:59:12 2015
-
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599
-@copyright: 2016
+@copyright: 2020
 """
 
 from Levenshtein import distance

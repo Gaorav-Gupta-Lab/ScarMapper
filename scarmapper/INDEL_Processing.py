@@ -109,6 +109,7 @@ class ScarSearch:
         # Get the sequence of the sgRNA.
         sgrna = self.target_dict[target_name][4]
         self.target_region = refseq.fetch(chrm, start, stop)
+        Tool_Box.debug_messenger([target_name, self.target_region])
         self.cutsite_search(target_name, sgrna, chrm, start, stop)
         self.window_mapping()
         loop_count = 0
@@ -143,7 +144,7 @@ class ScarSearch:
             [6] [No junction count, no cut count]; [7] [consensus N + short filtered count, unused]; 
             [8] junction_type_data list; [9] target name; 10 [HR left junction count, HR right junction count]
 
-            The junction_type_data list contains the repair type category counts.  [0] TsEJ, del_size >= 4 and 
+            The junction_type_data list contains the repair type category counts.  [0] TMEJ, del_size >= 4 and 
             microhomology_size >= 2; [1] NHEJ, del_size < 4 and ins_size < 5; [2] insertions >= 5 
             [3] Junctions with scars not represented by the other categories; [4] Non-MH Deletions, del_size >= 4 and 
             microhomology_size < 2 and ins_size < 5
@@ -278,7 +279,7 @@ class ScarSearch:
             # TMEJ counts
             elif del_size >= 4 and microhomology_size >= 2:
                 junction_type_data[0] += key_count
-                scar_type = "TsEJ"
+                scar_type = "TMEJ"
 
             # NHEJ counts
             elif del_size < 4 and ins_size < 5:
@@ -386,7 +387,9 @@ class ScarSearch:
         scar_fraction = \
             (self.summary_data[1] - self.summary_data[6][1] - self.summary_data[6][0]) / self.summary_data[1]
         if self.summary_data[1] >= self.lower_limit_count and scar_fraction > 0.1:
-            plot_data_dict['Marker'] = [(max(marker_list)) * -1, max(marker_list)]
+            plot_max = max(marker_list) + max(marker_list) * 0.1
+            plot_min = plot_max * -1
+            plot_data_dict['Marker'] = [plot_min, plot_max]
             sample_name = "{}.{}".format(self.index_dict[index_name][5], self.index_dict[index_name][6])
             ScarMapperPlot.scarmapperplot(self.args, datafile=None, sample_name=sample_name,
                                           plot_data_dict=plot_data_dict, label_dict=label_dict)
@@ -734,7 +737,6 @@ class DataProcessing:
                     # fastq_data_dict[index_name]["R1"].append([fastq1_read.name, fastq1_read.seq[15:], fastq1_read.qual[15:]])
                     fastq_data_dict[index_name]["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
                     if not self.args.PEAR:
-                        # fastq_data_dict[index_name]["R2"].append([fastq2_read.name, fastq2_read.seq, fastq2_read.qual])
                         fastq_data_dict[index_name]["R2"].append([fastq2_read.name, fastq2_read.seq, fastq2_read.qual])
 
                     fastq_file_name_list.append("{}{}_{}_Consensus.fastq"
@@ -959,7 +961,7 @@ class DataProcessing:
         summary_outstring += \
             "Index Name\tSample Name\tSample Replicate\tTarget\tTotal Found\tFraction Total\tPassing Read Filters\t" \
             "Fraction Passing Filters\t{}" \
-            "{}\tTsEJ\tNormalized TsEJ\tNHEJ\tNormalized NHEJ\tNon-Microhomology Deletions\tNormalized Non-MH Del\t" \
+            "{}\tTMEJ\tNormalized TMEJ\tNHEJ\tNormalized NHEJ\tNon-Microhomology Deletions\tNormalized Non-MH Del\t" \
             "Insertion >=5 +/- Deletions\tNormalized Insertion >=5+/- Deletions\tOther Scar Type\n"\
             .format(phasing_labels, sub_header)
 
