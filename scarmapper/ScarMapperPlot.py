@@ -18,7 +18,9 @@ import numpy
 import Valkyries.Tool_Box as ToolBox
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.1.3'
+__version__ = '0.2.0'
+
+from Valkyries import Tool_Box
 
 
 def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, label_dict=None):
@@ -70,6 +72,13 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     opacity = 1
 
     # [Bar Width, lft_del_plot_value, rt_del_plot_value, lft_ins_plot_value, rt_ins_plot_value, left ins width, right ins width, y-value]
+
+    # With HR some of the scartypes are empty causing a plot error.
+    scar_list = ['NHEJ', 'TsEJ', 'Non-MH Deletion', 'Insertion']
+    for scartype in scar_list:
+        if scartype not in plot_data_dict:
+            plot_data_dict[scartype] = [0, 0, 0, 0, 0, 0, 0, 0]
+
     # Common NHEJ
     width_nhej = plot_data_dict['NHEJ'][0]
     x_lft_del_nhej = plot_data_dict['NHEJ'][1]
@@ -89,15 +98,17 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     l_ins_width_tmej = ""
     r_ins_width_tmej = ""
     y_tmej = ""
-    with suppress(IndexError):
-        width_tmej = plot_data_dict['TMEJ'][0]
-        x_lft_del_tmej = plot_data_dict['TMEJ'][1]
-        x_rt_del_tmej = plot_data_dict['TMEJ'][2]
-        x_lft_ins_tmej = plot_data_dict['TMEJ'][3]
-        x_rt_ins_tmej = plot_data_dict['TMEJ'][4]
-        l_ins_width_tmej = plot_data_dict['TMEJ'][5]
-        r_ins_width_tmej = plot_data_dict['TMEJ'][6]
-        y_tmej = plot_data_dict['TMEJ'][7]
+
+    # Common TsEJ
+    width_tmej = plot_data_dict['TsEJ'][0]
+    x_lft_del_tmej = plot_data_dict['TsEJ'][1]
+    x_rt_del_tmej = plot_data_dict['TsEJ'][2]
+    x_lft_ins_tmej = plot_data_dict['TsEJ'][3]
+    x_rt_ins_tmej = plot_data_dict['TsEJ'][4]
+    l_ins_width_tmej = plot_data_dict['TsEJ'][5]
+    r_ins_width_tmej = plot_data_dict['TsEJ'][6]
+    y_tmej = plot_data_dict['TsEJ'][7]
+
 
     # Common non-MH deletion
     width_non_mh_del = plot_data_dict['Non-MH Deletion'][0]
@@ -118,25 +129,14 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     color_not_polq = color_dict['TMEJ_Not-PolQ']
     '''
     # Common Insertions
-    width_ins = ""
-    x_lft_del_insertion = ""
-    x_rt_del_insertion = ""
-    x_lft_ins_insertion = ""
-    x_rt_ins_insertion = ""
-    l_ins_width_insertion = ""
-    r_ins_width_insertion = ""
-    y_ins = ""
-    try:
-        width_ins = plot_data_dict['Insertion'][0]
-        x_lft_del_insertion = plot_data_dict['Insertion'][1]
-        x_rt_del_insertion = plot_data_dict['Insertion'][2]
-        x_lft_ins_insertion = plot_data_dict['Insertion'][3]
-        x_rt_ins_insertion = plot_data_dict['Insertion'][4]
-        l_ins_width_insertion = plot_data_dict['Insertion'][5]
-        r_ins_width_insertion = plot_data_dict['Insertion'][6]
-        y_ins = plot_data_dict['Insertion'][7]
-    except IndexError:
-        ToolBox.debug_messenger(sample_name)
+    width_ins = plot_data_dict['Insertion'][0]
+    x_lft_del_insertion = plot_data_dict['Insertion'][1]
+    x_rt_del_insertion = plot_data_dict['Insertion'][2]
+    x_lft_ins_insertion = plot_data_dict['Insertion'][3]
+    x_rt_ins_insertion = plot_data_dict['Insertion'][4]
+    l_ins_width_insertion = plot_data_dict['Insertion'][5]
+    r_ins_width_insertion = plot_data_dict['Insertion'][6]
+    y_ins = plot_data_dict['Insertion'][7]
 
     # Set the limits of the x-axis for all plots
     ax[3].set_xlim(plot_data_dict['Marker'][0], plot_data_dict['Marker'][1])
