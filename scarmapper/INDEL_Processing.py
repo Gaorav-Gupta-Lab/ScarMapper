@@ -110,6 +110,7 @@ class ScarSearch:
         # Get the sequence of the sgRNA.
         sgrna = self.target_dict[target_name][4]
         self.target_region = refseq.fetch(chrm, start, stop)
+        Tool_Box.debug_messenger([target_name, self.target_region])
         self.cutsite_search(target_name, sgrna, chrm, start, stop)
         self.window_mapping()
         loop_count = 0
@@ -388,6 +389,9 @@ class ScarSearch:
             (self.summary_data[1] - self.summary_data[6][1] - self.summary_data[6][0]) / self.summary_data[1]
 
         if self.summary_data[1] >= self.lower_limit_count and scar_fraction > 0.1:
+            plot_max = max(marker_list) + max(marker_list) * 0.1
+            plot_min = plot_max * -1
+            plot_data_dict['Marker'] = [plot_min, plot_max]
             sample_name = "{}.{}".format(self.index_dict[index_name][5], self.index_dict[index_name][6])
             plot_data_dict['Marker'] = [(max(marker_list)) * -1, max(marker_list)]
 
@@ -737,7 +741,6 @@ class DataProcessing:
                     # fastq_data_dict[index_name]["R1"].append([fastq1_read.name, fastq1_read.seq[15:], fastq1_read.qual[15:]])
                     fastq_data_dict[index_name]["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
                     if not self.args.PEAR:
-                        # fastq_data_dict[index_name]["R2"].append([fastq2_read.name, fastq2_read.seq, fastq2_read.qual])
                         fastq_data_dict[index_name]["R2"].append([fastq2_read.name, fastq2_read.seq, fastq2_read.qual])
 
                     fastq_file_name_list.append("{}{}_{}_Consensus.fastq"

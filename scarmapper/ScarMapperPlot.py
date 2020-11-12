@@ -40,13 +40,13 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
 
     # Define colors for scar types and labels
     nhej_color = "royalblue"
-    tsej_color = "red"
+    tmej_color = "red"
     insertion_color = "olive"
     non_mh_del_color = "mediumorchid"
     ins_del_color = "cyan"
     '''
     color_dict = \
-        {'TsEJ': tsej_color, 'NHEJ': nhej_color, 'Non-MH Deletion': non_mh_del_color, 'Insertion': insertion_color,
+        {'TMEJ': tmej_color, 'NHEJ': nhej_color, 'Non-MH Deletion': non_mh_del_color, 'Insertion': insertion_color,
          "Marker": "black", "TMEJ_Not-PolQ": "green", "Ins": ins_del_color}
     '''
     # fig, ax = plt.subplots()
@@ -54,6 +54,19 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     fig.set_size_inches(8.5, 11.0)
     gs = fig.add_gridspec(4, hspace=0)
     ax = gs.subplots(sharex=True, sharey=True)
+
+    # set background color of subplots
+    ax[0].set_facecolor('whitesmoke')
+    ax[1].set_facecolor('whitesmoke')
+    ax[2].set_facecolor('whitesmoke')
+    ax[3].set_facecolor('whitesmoke')
+
+    # Turn off y-ticks
+    ax[0].set_yticks([])
+    ax[1].set_yticks([])
+    ax[2].set_yticks([])
+    ax[3].set_yticks([])
+
     # fig, (ax1, ax2) = plt.subplots(2, sharey='all', sharex='all')
     # plot_data_dict = build_plot_data_dict(df, color_dict)
     opacity = 1
@@ -76,6 +89,16 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     r_ins_width_nhej = plot_data_dict['NHEJ'][6]
     y_nhej = plot_data_dict['NHEJ'][7]
 
+    # Common TMEJ
+    width_tmej = ""
+    x_lft_del_tmej = ""
+    x_rt_del_tmej = ""
+    x_lft_ins_tmej = ""
+    x_rt_ins_tmej = ""
+    l_ins_width_tmej = ""
+    r_ins_width_tmej = ""
+    y_tmej = ""
+
     # Common TsEJ
     width_tmej = plot_data_dict['TsEJ'][0]
     x_lft_del_tmej = plot_data_dict['TsEJ'][1]
@@ -85,6 +108,7 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     l_ins_width_tmej = plot_data_dict['TsEJ'][5]
     r_ins_width_tmej = plot_data_dict['TsEJ'][6]
     y_tmej = plot_data_dict['TsEJ'][7]
+
 
     # Common non-MH deletion
     width_non_mh_del = plot_data_dict['Non-MH Deletion'][0]
@@ -98,10 +122,10 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
 
     '''
     # Common TMEJ not PolQ
-    width_not_polq = plot_data_dict['TsEJ_Not-PolQ'][0]
-    x_lft_not_polq = plot_data_dict['TsEJ_Not-PolQ'][1]
-    x_rt_not_polq = plot_data_dict['TsEJ_Not-PolQ'][2]
-    y_tmej_not_polq = plot_data_dict['TsEJ_Not-PolQ'][5]
+    width_not_polq = plot_data_dict['TMEJ_Not-PolQ'][0]
+    x_lft_not_polq = plot_data_dict['TMEJ_Not-PolQ'][1]
+    x_rt_not_polq = plot_data_dict['TMEJ_Not-PolQ'][2]
+    y_tmej_not_polq = plot_data_dict['TMEJ_Not-PolQ'][5]
     color_not_polq = color_dict['TMEJ_Not-PolQ']
     '''
     # Common Insertions
@@ -135,8 +159,8 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     ax[1].barh(y_non_mh_del, x_rt_ins_non_mh_del, r_ins_width_non_mh_del, alpha=opacity, align='center', linewidth=0,
                color=ins_del_color)
 
-    ax[2].barh(y_tmej, x_lft_del_tmej, width_tmej, align='center', linewidth=0, color=tsej_color)
-    ax[2].barh(y_tmej, x_rt_del_tmej, width_tmej, align='center', linewidth=0, color=tsej_color)
+    ax[2].barh(y_tmej, x_lft_del_tmej, width_tmej, align='center', linewidth=0, color=tmej_color)
+    ax[2].barh(y_tmej, x_rt_del_tmej, width_tmej, align='center', linewidth=0, color=tmej_color)
     ax[2].barh(y_tmej, x_lft_ins_tmej, l_ins_width_tmej, alpha=opacity, align='center', linewidth=0,
                color=ins_del_color)
     ax[2].barh(y_tmej, x_rt_ins_tmej, r_ins_width_tmej, alpha=opacity, align='center', linewidth=0,
@@ -173,8 +197,8 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     ax[1].annotate('Non-MH Deletion {}'.format(round(label_dict['Non-MH Deletion'], 3)),
                    xy=(ax[1].get_xlim()[1] * -0.98, ax[1].get_ylim()[1] * 0.9), color=non_mh_del_color, fontsize=14)
     # ax[2].annotate('Non-PolQ MH', xy=(ax[2].get_xlim()[1] * -0.98, ax[2].get_ylim()[1] * 0.9))
-    ax[2].annotate('TsEJ {}'.format(round(label_dict['TsEJ'], 3)),
-                   xy=(ax[2].get_xlim()[1] * -0.98, ax[2].get_ylim()[1] * 0.9), color=tsej_color, fontsize=14)
+    ax[2].annotate('TMEJ {}'.format(round(label_dict['TMEJ'], 3)),
+                   xy=(ax[2].get_xlim()[1] * -0.98, ax[2].get_ylim()[1] * 0.9), color=tmej_color, fontsize=14)
     ax[3].annotate('NHEJ {}'.format(round(label_dict['NHEJ'], 3)),
                    xy=(ax[3].get_xlim()[1] * -0.98, ax[2].get_ylim()[1] * 0.9), color=nhej_color, fontsize=14)
     fig.suptitle(sample_name)

@@ -1,40 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-INDEX_Parser.py
-Version 0.6.0
-    December 26, 2016
-    Dennis A. Simpson
-    IntervalFile function refactored to make the code able to handle BED files of indeterminant column numbers.
-Version 0.5.0
-    Dec. 1, 2016
-    Dennis A. Simpson
-    Changed versioning to conform to semantic versioning (http://semver.org/).  Added version dependency checks for
-    modules.
-Version 0.5
-    August 9, 2016
-    Dennis A. Simpson
-    Using Numpy arrays for much of the data structure now.  Added a function that will build an array and automatically
-    create an index column at position 0.
-Version 0.4
-    December 29, 2015
-    Dennis A. Simpson
-    Found that blank lines were not being removed from the file correctly causing parser to crash.
-Version 0.3
-    November 30, 2015
-    By Dennis A. Simpson
-    Made this a more generic file parser and added the ability to parse the SegCounts file for single cell sequencing.
-
-Version 0.2
-    September 30, 2015
-    By Dennis A. Simpson
-    Parses BED file of INDEX sequences and passes the information on as a named tuple.  Input is at least a three column
-    BED file where the first column is the INDEX name, the second column is the INDEX sequence, and the third column is
-    any comments about the index.  Additional columns are not used.
 
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599
-@copyright: 2016
+@copyright: 2020
 """
 
 import csv
@@ -42,7 +12,6 @@ import os
 import re
 import numpy
 from Valkyries import Tool_Box
-# from Vivified_Dictionry import VivifiedDictionary
 from contextlib import suppress
 
 __author__ = 'Dennis A. Simpson'
