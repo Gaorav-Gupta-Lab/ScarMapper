@@ -1,5 +1,6 @@
 #!/bin/bash
 #Parameter file to run ScarMapper Pipeline
+#Version 1
 
 python3 /full/path/to/scarmapper.py --options_file /full/path/to/run_ScarMapper_IndelProcessins.sh
 exit
@@ -37,4 +38,5 @@ exit
 --MinConsensusLength	# Default 50
 
 # Plot Options
+--PatternThreshold	# Cutoff frequency for patterns to plot such as 0.0001
 --FigureType	pdf # svg, jpg, tiff, pdf, png

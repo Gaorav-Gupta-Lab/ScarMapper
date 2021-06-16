@@ -95,8 +95,8 @@ class ScarSearch:
         results_freq_dict = collections.defaultdict(list)
         refseq = pysam.FastaFile(self.args.RefSeq)
 
+        # Get the genomic 5' coordinate of the reference target region.
         try:
-            # Get the genomic 5' coordinate of the reference target region.
             start = int(self.target_dict[target_name][2])
         except IndexError:
             self.log.error("Target file incorrectly formatted for {}".format(target_name))
@@ -109,8 +109,15 @@ class ScarSearch:
 
         # Get the sequence of the sgRNA.
         sgrna = self.target_dict[target_name][4]
+
+        # Get the Target Region.  This allows both types of genomic indices.
+        try:
+            refseq.fetch(chrm, start, stop)
+        except KeyError:
+            chrm = "chr{}".format(chrm)
+
         self.target_region = refseq.fetch(chrm, start, stop)
-        Tool_Box.debug_messenger([target_name, self.target_region])
+        # Tool_Box.debug_messenger([target_name, self.target_region])
         self.cutsite_search(target_name, sgrna, chrm, start, stop)
         self.window_mapping()
         loop_count = 0
@@ -322,7 +329,7 @@ class ScarSearch:
             label_dict[scar_type] += frequency_row_list[1]
 
             # Plotting all scar patterns is messy.  This provides a cutoff.
-            if frequency_row_list[1] < 0.00025:
+            if frequency_row_list[1] < float(self.args.PatternThreshold):
                 continue
 
             y_value = frequency_row_list[1]*0.5

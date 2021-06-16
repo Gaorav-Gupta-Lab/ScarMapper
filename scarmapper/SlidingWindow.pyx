@@ -97,6 +97,7 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
         summary_data[6][0] += 1
         return [], summary_data
 
+    hr_label = ""
     # If requested, do a search for HR Donor
     if hr_donor:
         rt_position = len(hr_donor)+25
@@ -112,7 +113,6 @@ cpdef sliding_window(str consensus, str target_region, int cutsite, int target_l
             rt_position+=1
             lft_position+=1
 
-        hr_label = ""
         if donor_found:
             hr_label = "HR"
         # If HR Donor is found then find but do not score INDELS

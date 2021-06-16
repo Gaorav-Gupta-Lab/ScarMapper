@@ -20,8 +20,6 @@ import Valkyries.Tool_Box as ToolBox
 __author__ = 'Dennis A. Simpson'
 __version__ = '0.2.0'
 
-from Valkyries import Tool_Box
-
 
 def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, label_dict=None):
 
@@ -44,11 +42,7 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     insertion_color = "olive"
     non_mh_del_color = "mediumorchid"
     ins_del_color = "cyan"
-    '''
-    color_dict = \
-        {'TMEJ': tmej_color, 'NHEJ': nhej_color, 'Non-MH Deletion': non_mh_del_color, 'Insertion': insertion_color,
-         "Marker": "black", "TMEJ_Not-PolQ": "green", "Ins": ins_del_color}
-    '''
+
     # fig, ax = plt.subplots()
     fig = plt.figure()
     fig.set_size_inches(8.5, 11.0)
@@ -68,13 +62,12 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     ax[3].set_yticks([])
 
     # fig, (ax1, ax2) = plt.subplots(2, sharey='all', sharex='all')
-    # plot_data_dict = build_plot_data_dict(df, color_dict)
     opacity = 1
 
     # [Bar Width, lft_del_plot_value, rt_del_plot_value, lft_ins_plot_value, rt_ins_plot_value, left ins width, right ins width, y-value]
 
     # With HR some of the scartypes are empty causing a plot error.
-    scar_list = ['NHEJ', 'TsEJ', 'Non-MH Deletion', 'Insertion']
+    scar_list = ['NHEJ', 'TMEJ', 'Non-MH Deletion', 'Insertion']
     for scartype in scar_list:
         if scartype not in plot_data_dict:
             plot_data_dict[scartype] = [0, 0, 0, 0, 0, 0, 0, 0]
@@ -99,16 +92,15 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     r_ins_width_tmej = ""
     y_tmej = ""
 
-    # Common TsEJ
-    width_tmej = plot_data_dict['TsEJ'][0]
-    x_lft_del_tmej = plot_data_dict['TsEJ'][1]
-    x_rt_del_tmej = plot_data_dict['TsEJ'][2]
-    x_lft_ins_tmej = plot_data_dict['TsEJ'][3]
-    x_rt_ins_tmej = plot_data_dict['TsEJ'][4]
-    l_ins_width_tmej = plot_data_dict['TsEJ'][5]
-    r_ins_width_tmej = plot_data_dict['TsEJ'][6]
-    y_tmej = plot_data_dict['TsEJ'][7]
-
+    # Common TMEJ
+    width_tmej = plot_data_dict['TMEJ'][0]
+    x_lft_del_tmej = plot_data_dict['TMEJ'][1]
+    x_rt_del_tmej = plot_data_dict['TMEJ'][2]
+    x_lft_ins_tmej = plot_data_dict['TMEJ'][3]
+    x_rt_ins_tmej = plot_data_dict['TMEJ'][4]
+    l_ins_width_tmej = plot_data_dict['TMEJ'][5]
+    r_ins_width_tmej = plot_data_dict['TMEJ'][6]
+    y_tmej = plot_data_dict['TMEJ'][7]
 
     # Common non-MH deletion
     width_non_mh_del = plot_data_dict['Non-MH Deletion'][0]
@@ -190,17 +182,25 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     # ax[4].axvline(x=0, ls='-', lw=0.25, color='black')
 
     # Add labels to X-axis and each plot.
-    ax[3].set_xlabel('INDEL Size')
+    ax[3].set_xlabel('INDEL Size', fontname="sans-serif")
 
     ax[0].annotate('Insertion {}'.format(round(label_dict['Insertion'], 3)),
-                   xy=(ax[0].get_xlim()[1] * -0.98, ax[0].get_ylim()[1] * 0.9), color=insertion_color, fontsize=14)
+                   xy=(ax[0].get_xlim()[1] * -0.98, ax[0].get_ylim()[1] * 0.9), color=insertion_color,
+                   fontname="sans-serif", fontsize=14)
+
     ax[1].annotate('Non-MH Deletion {}'.format(round(label_dict['Non-MH Deletion'], 3)),
-                   xy=(ax[1].get_xlim()[1] * -0.98, ax[1].get_ylim()[1] * 0.9), color=non_mh_del_color, fontsize=14)
+                   xy=(ax[1].get_xlim()[1] * -0.98, ax[1].get_ylim()[1] * 0.9), color=non_mh_del_color,
+                   fontname="sans-serif", fontsize=14)
+
     # ax[2].annotate('Non-PolQ MH', xy=(ax[2].get_xlim()[1] * -0.98, ax[2].get_ylim()[1] * 0.9))
     ax[2].annotate('TMEJ {}'.format(round(label_dict['TMEJ'], 3)),
-                   xy=(ax[2].get_xlim()[1] * -0.98, ax[2].get_ylim()[1] * 0.9), color=tmej_color, fontsize=14)
+                   xy=(ax[2].get_xlim()[1] * -0.98, ax[2].get_ylim()[1] * 0.9), color=tmej_color,
+                   fontname="sans-serif", fontsize=14)
+
     ax[3].annotate('NHEJ {}'.format(round(label_dict['NHEJ'], 3)),
-                   xy=(ax[3].get_xlim()[1] * -0.98, ax[2].get_ylim()[1] * 0.9), color=nhej_color, fontsize=14)
+                   xy=(ax[3].get_xlim()[1] * -0.98, ax[2].get_ylim()[1] * 0.9), color=nhej_color,
+                   fontname="sans-serif", fontsize=14)
+
     fig.suptitle(sample_name)
 
     if args.FigureType == "pdf":

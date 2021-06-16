@@ -51,7 +51,7 @@ if not cfile or old_file:
 from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.22.2'
+__version__ = '0.23.0'
 __package__ = 'ScarMapper'
 
 
@@ -358,8 +358,7 @@ def main(command_line_args=None):
                                       label_dict=label_dict)
 
         freq_results_file = \
-            open("{}{}_{}_ScarMapper_Combined_Frequency.txt"
-                 .format(args.WorkingFolder, args.Job_Name, args.SampleName), "w")
+            open("{}{}_ScarMapper_Combined_Frequency.txt".format(args.WorkingFolder, args.SampleName), "w")
 
         freq_results_file.write(freq_results_outstring)
         freq_results_file.close()

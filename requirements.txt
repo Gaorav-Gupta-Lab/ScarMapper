@@ -1,0 +1,10 @@
+scipy>=1.6.0
+natsort>=7.0.0
+python-magic~=0.4.22
+pysam~=0.16.0.1
+pathos>=0.2.7
+numpy>=1.20.3
+Cython>=0.29.23
+pandas>=1.1.4
+matplotlib>=3.4.2
+setuptools>=56.2.0
