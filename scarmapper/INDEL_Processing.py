@@ -2,7 +2,7 @@
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599
-@copyright: 2020
+@copyright: 2021
 """
 import collections
 import datetime
