@@ -2,7 +2,7 @@
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599
-@copyright: 2020
+@copyright: 2021
 """
 import csv
 import datetime
@@ -22,9 +22,11 @@ from scipy.stats import gmean
 from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FASTQ_Tools
 from scarmapper import ScarMapperPlot
 import re
+import pathlib
 
 # This is a seriously ugly hack to check the existence and age of the compiled file.
-folder_content = os.listdir("{0}{1}scarmapper{1}".format(os.path.dirname(__file__), os.sep))
+# folder_content = os.listdir("{0}{1}scarmapper{1}".format(os.path.dirname(__file__), os.sep))
+folder_content = os.listdir("{0}{1}scarmapper{1}".format(pathlib.Path(__file__).parent.absolute(), os.sep))
 regex = re.compile("SlidingWindow.cpython.*.so")
 cfile = ""
 old_file = False
@@ -33,17 +35,24 @@ for f in folder_content:
         cfile = f
         break
 if cfile:
+    cpath = "{0}{1}scarmapper{1}{2}".format(pathlib.Path(__file__).parent.absolute(), os.sep, cfile)
+    pyx_file = "{0}{1}scarmapper{1}SlidingWindow.pyx".format(pathlib.Path(__file__).parent.absolute(), os.sep)
+    compiled_time = pathlib.Path(cpath).stat().st_ctime
+    pyx_module_time = pathlib.Path(pyx_file).stat().st_ctime
+    """
     compiled_time = \
-        time.ctime(os.path.getmtime("{0}{1}scarmapper{1}{2}".format(os.path.dirname(__file__), os.sep, cfile)))
+        time.ctime(os.path.getmtime("{0}{1}scarmapper{1}{2}".format(pathlib.Path(__file__).parent.absolute(), os.sep, cfile)))
     pyx_module_time = \
-        time.ctime(os.path.getmtime("{0}{1}scarmapper{1}SlidingWindow.pyx".format(os.path.dirname(__file__), os.sep)))
-    if pyx_module_time > compiled_time:
+        time.ctime(os.path.getmtime("{0}{1}scarmapper{1}SlidingWindow.pyx".format(pathlib.Path(__file__).parent.absolute(), os.sep)))
+    """
+
+    if pyx_module_time >= compiled_time:
         old_file = True
 
 if not cfile or old_file:
     print("Compiled Module Doesn't Exist or is Old; Compiling New SlidingWindow Module")
-    setup_file = "python3 {0}{1}scarmapper{1}setup.py build_ext --inplace".format(os.path.dirname(__file__), os.sep)
-    os.chdir(os.path.dirname(__file__))
+    setup_file = "python3 {0}{1}scarmapper{1}setup.py build_ext --inplace".format(pathlib.Path(__file__).parent.absolute(), os.sep)
+    os.chdir(pathlib.Path(__file__).parent.absolute())
     subprocess.run([setup_file], shell=True)
     # The sleep is to allow for network or disk latency.
     time.sleep(5.0)
@@ -51,7 +60,7 @@ if not cfile or old_file:
 from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.23.0'
+__version__ = '0.24.0'
 __package__ = 'ScarMapper'
 
 
@@ -94,8 +103,8 @@ def pear_consensus(args, log):
 
     proc = subprocess.run(
         "{}{}Pear{}bin{}./pear -f {} -r {} -o {} {}{}{}{}{}{}{}"
-        .format(os.path.dirname(__file__), os.sep, os.sep, os.sep, args.FASTQ1, args.FASTQ2, fastq_consensus_prefix, y,
-                j, n, p_value, min_overlap, quality_threshold, phred_value, test_method),
+        .format(pathlib.Path(__file__).parent.absolute(), os.sep, os.sep, os.sep, args.FASTQ1, args.FASTQ2,
+                fastq_consensus_prefix, y, j, n, p_value, min_overlap, quality_threshold, phred_value, test_method),
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
     if proc.stderr:
@@ -379,7 +388,8 @@ def error_checking(args):
     :param args:
     """
 
-    if not os.path.exists(args.WorkingFolder):
+    # if not os.path.exists(args.WorkingFolder):
+    if not pathlib.Path(args.WorkingFolder).exists():
         print("\033[1;31mERROR:\n\tWorking Folder Path: {} Not Found.  Check Options File."
               .format(args.WorkingFolder))
         raise SystemExit(1)
@@ -392,17 +402,17 @@ def error_checking(args):
         print("\033[1;31mERROR:\n\t--FASTQ2 and --ConsensusSequence both set.  Pick one or the other and try again.")
         raise SystemExit(1)
 
-    if getattr(args, "FASTQ1", False) and not os.path.isfile(args.FASTQ1):
+    if getattr(args, "FASTQ1", False) and not pathlib.Path(args.FASTQ1).exists():
         print("\033[1;31mERROR:\n\t--FASTQ1: {} Not Found.  Check Options File."
               .format(args.FASTQ1))
         raise SystemExit(1)
 
-    if getattr(args, "FASTQ2", False) and not os.path.isfile(args.FASTQ2):
+    if getattr(args, "FASTQ2", False) and not pathlib.Path(args.FASTQ2).exists():
         print("\033[1;31mERROR:\n\t--FASTQ2: {} Not Found.  Check Options File."
               .format(args.FASTQ2))
         raise SystemExit(1)
 
-    if getattr(args, "ConsensusSequence", False) and not os.path.isfile(args.ConsensusSequence):
+    if getattr(args, "ConsensusSequence", False) and not pathlib.Path(args.ConsensusSequence).exists():
         print("\033[1;31mERROR:\n\t--ConsensusSequence: {} Not Found.  Check Options File."
               .format(args.FASTQ2))
         raise SystemExit(1)

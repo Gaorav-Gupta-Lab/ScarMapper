@@ -2,10 +2,11 @@
 Setup file to Cythonize Alignment Processing using "python3 setup.py build_ext --inplace"
 """
 import os
+import pathlib
 from distutils.core import setup
 from Cython.Build import cythonize
 
-slidingwindow_file = '{0}{1}SlidingWindow.pyx'.format(os.path.dirname(__file__), os.sep)
+slidingwindow_file = '{}SlidingWindow.pyx'.format(pathlib.Path(__file__).parent.absolute(), os.sep)
 
 setup(
     name="ScarMapper Sliding Window",
