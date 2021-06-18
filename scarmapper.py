@@ -23,11 +23,22 @@ from Valkyries import Tool_Box, Version_Dependencies as VersionDependencies, FAS
 from scarmapper import ScarMapperPlot
 import re
 import pathlib
+from distutils.version import StrictVersion
+import platform
 
 # This is a seriously ugly hack to check the existence and age of the compiled file.
-# folder_content = os.listdir("{0}{1}scarmapper{1}".format(os.path.dirname(__file__), os.sep))
 folder_content = os.listdir("{0}{1}scarmapper{1}".format(pathlib.Path(__file__).parent.absolute(), os.sep))
-regex = re.compile("SlidingWindow.cpython.*.so")
+python_ver = StrictVersion(platform.python_version())
+
+subver = 5
+if python_ver >= "3.6.0" and python_ver < "3.7.0":
+    subver = 6
+elif python_ver >= "3.7.0" and python_ver < "3.8.0":
+    subver = 7
+elif python_ver >= "3.8.0" and python_ver < "3.9.0":
+    subver = 8
+
+regex = re.compile("SlidingWindow.cpython-3{}.*.so".format(subver))
 cfile = ""
 old_file = False
 for f in folder_content:
@@ -39,20 +50,19 @@ if cfile:
     pyx_file = "{0}{1}scarmapper{1}SlidingWindow.pyx".format(pathlib.Path(__file__).parent.absolute(), os.sep)
     compiled_time = pathlib.Path(cpath).stat().st_ctime
     pyx_module_time = pathlib.Path(pyx_file).stat().st_ctime
-    """
-    compiled_time = \
-        time.ctime(os.path.getmtime("{0}{1}scarmapper{1}{2}".format(pathlib.Path(__file__).parent.absolute(), os.sep, cfile)))
-    pyx_module_time = \
-        time.ctime(os.path.getmtime("{0}{1}scarmapper{1}SlidingWindow.pyx".format(pathlib.Path(__file__).parent.absolute(), os.sep)))
-    """
 
     if pyx_module_time >= compiled_time:
         old_file = True
 
 if not cfile or old_file:
     print("Compiled Module Doesn't Exist or is Old; Compiling New SlidingWindow Module")
-    setup_file = "python3 {0}{1}scarmapper{1}setup.py build_ext --inplace".format(pathlib.Path(__file__).parent.absolute(), os.sep)
+    setup_file = \
+        "python3 {0}{1}scarmapper{1}setup.py build_ext --inplace"\
+        .format(pathlib.Path(__file__).parent.absolute(), os.sep)
+
     os.chdir(pathlib.Path(__file__).parent.absolute())
+    if subver < 7:
+        os.chdir("..")
     subprocess.run([setup_file], shell=True)
     # The sleep is to allow for network or disk latency.
     time.sleep(5.0)
@@ -60,7 +70,7 @@ if not cfile or old_file:
 from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.24.0'
+__version__ = '0.25.0'
 __package__ = 'ScarMapper'
 
 

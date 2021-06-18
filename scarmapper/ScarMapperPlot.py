@@ -4,21 +4,17 @@ Draws main figures for ScarMapper
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599
-@copyright: 2020
+@copyright: 2021
 """
 
 import argparse
-from contextlib import suppress
-import pandas
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-import matplotlib.patches as mpatches
 import collections
-import numpy
 import Valkyries.Tool_Box as ToolBox
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 
 
 def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, label_dict=None):

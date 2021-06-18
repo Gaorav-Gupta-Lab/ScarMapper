@@ -6,7 +6,7 @@ import pathlib
 from distutils.core import setup
 from Cython.Build import cythonize
 
-slidingwindow_file = '{}SlidingWindow.pyx'.format(pathlib.Path(__file__).parent.absolute(), os.sep)
+slidingwindow_file = '{}{}SlidingWindow.pyx'.format(pathlib.Path(__file__).parent.absolute(), os.sep)
 
 setup(
     name="ScarMapper Sliding Window",
