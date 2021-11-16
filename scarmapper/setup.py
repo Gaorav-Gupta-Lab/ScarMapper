@@ -12,5 +12,5 @@ setup(
     name="ScarMapper Sliding Window",
     author='Dennis Simpson',
     author_email='dennis@email.unc.edu',
-    ext_modules=cythonize(slidingwindow_file, annotate=True)
+    ext_modules=cythonize(slidingwindow_file, annotate=False)
 )
