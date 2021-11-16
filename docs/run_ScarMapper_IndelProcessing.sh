@@ -22,7 +22,7 @@ exit
 --Demultiplex	# True or False.  Write demultiplexed FASTQ files?
 --DeleteConsensusFASTQ	True
 --HR_Donor	# 10 - 15 nucleotide sequence for HR Donor search.  Can be left blank. 
---Platform	# Illumina, Ramsden
+--Platform	# Illumina, TruSeq, Ramsden
 
 --N_Limit	0.01
 --Minimum_Length	100	# Length after trimming

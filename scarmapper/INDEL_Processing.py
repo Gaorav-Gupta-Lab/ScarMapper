@@ -18,7 +18,7 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow, ScarMapperPlot
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.20.0'
+__version__ = '0.21.0'
 __package__ = 'ScarMapper'
 
 
@@ -701,7 +701,6 @@ class DataProcessing:
                 r2_found = False
                 r1_found = False
                 if self.args.Platform == "Illumina":
-
                     # Score the phasing and place the reads in a dictionary.
                     for r2_phase, r1_phase in zip(self.phase_dict[locus]["R2"], self.phase_dict[locus]["R1"]):
 
@@ -725,27 +724,31 @@ class DataProcessing:
                         if r1_phase[0] == fastq1_read.seq[:len(r1_phase[0])] and not r1_found:
                             self.phase_count[phase_key]["Phase "+r1_phase_name] += 1
                             r1_found = True
+
                     # if no phasing is found then note that.
                     if not r2_found:
                         self.phase_count[phase_key]["No Read 2 Phasing"] += 1
                     if not r1_found:
                         self.phase_count[phase_key]["No Read 1 Phasing"] += 1
 
-                    # The adapters on AAVS1.1 are reversed causing the reads to be reversed.
+                    # The adapters on Gupta Lab AAVS1.1 are reversed causing the reads to be reversed.
                     if locus == "AAVS1.1":
                         self.sequence_dict[index_name].append(fastq1_read.seq)
                     else:
                         self.sequence_dict[index_name].append(fastq1_read.seq)
 
+                elif self.args.Platform == "TruSeq":
+                    self.sequence_dict[index_name].append(right_seq)
+
                 elif self.args.Platform == "Ramsden":
                     self.sequence_dict[index_name].append(Sequence_Magic.rcomp(fastq1_read.seq))
+
                 else:
                     self.log.error("--Platform {} not correctly defined.  Edit parameter file and try again"
                                    .format(self.args.Platform))
                     raise SystemExit(1)
 
                 if self.args.Demultiplex:
-                    # fastq_data_dict[index_name]["R1"].append([fastq1_read.name, fastq1_read.seq[15:], fastq1_read.qual[15:]])
                     fastq_data_dict[index_name]["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
                     if not self.args.PEAR:
                         fastq_data_dict[index_name]["R2"].append([fastq2_read.name, fastq2_read.seq, fastq2_read.qual])
@@ -766,6 +769,7 @@ class DataProcessing:
         for key in self.sequence_dict:
             key_counts.append(len(self.sequence_dict[key]))
 
+        # The lower limit is used when plotting the data.  Generally the lowest values are just noise.
         lower, upper_limit = stats.norm.interval(0.9, loc=statistics.mean(key_counts), scale=stats.sem(key_counts))
         lower_limit = statistics.mean(key_counts)-lower
 
@@ -881,11 +885,14 @@ class DataProcessing:
         left_seq = ""
         right_seq = ""
         index_key = 'unidentified'
-        mismatch = 1
         left_match = 5
         right_match = 5
 
-        if self.args.Platform == "Ramsden":
+        if self.args.Platform == "Illumina":
+            mismatch = 1
+        elif self.args.Platform == "TruSeq":
+            mismatch = 0
+        elif self.args.Platform == "Ramsden":
             mismatch = 3
 
         for index_key in self.index_dict:
@@ -896,6 +903,11 @@ class DataProcessing:
                 # The indices are after the last ":" in the header.
                 right_match = Sequence_Magic.match_maker(right_index, fastq1_read.name.split(":")[-1].split("+")[0])
                 left_match = Sequence_Magic.match_maker(left_index, fastq1_read.name.split(":")[-1].split("+")[1])
+
+            elif self.args.Platform == "TruSeq":
+                # The indices are the first 6 nucleotides of the forward read.
+                right_match = Sequence_Magic.match_maker(right_index, fastq1_read.seq[6:])
+                left_match = Sequence_Magic.match_maker(left_index, fastq1_read.seq[-6:])
 
             elif self.args.Platform == "Ramsden":
                 if self.args.PEAR:
@@ -914,6 +926,10 @@ class DataProcessing:
                 self.read_count_dict[index_key] += 1
                 left_seq = ""
                 right_seq = fastq1_read.seq
+
+                if self.args.Platform == "TruSeq":
+                    right_seq = fastq1_read.seq[6:-6]
+
                 match_found = True
                 if not fastq2_read:
                     break
@@ -952,12 +968,13 @@ class DataProcessing:
         phasing_labels = ""
         phase_label_list = []
 
-        for locus in self.phase_count:
-            if len(natsort.natsorted(self.phase_count[locus])) > 4:
-                for phase_label in natsort.natsorted(self.phase_count[locus]):
-                    phasing_labels += "{}\t".format(phase_label)
-                    phase_label_list.append(phase_label)
-                break
+        if self.args.Platform == "Illumina":
+            for locus in self.phase_count:
+                if len(natsort.natsorted(self.phase_count[locus])) > 4:
+                    for phase_label in natsort.natsorted(self.phase_count[locus]):
+                        phasing_labels += "{}\t".format(phase_label)
+                        phase_label_list.append(phase_label)
+                    break
 
         hr_data = ""
         if self.args.HR_Donor:
