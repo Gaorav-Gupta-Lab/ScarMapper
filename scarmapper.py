@@ -56,21 +56,24 @@ if cfile:
 
 if not cfile or old_file:
     print("Compiled Module Doesn't Exist or is Old; Compiling New SlidingWindow Module")
+    
     setup_file = \
-        "python3 {0}{1}scarmapper{1}setup.py build_ext --inplace"\
-        .format(pathlib.Path(__file__).parent.absolute(), os.sep)
+        "python3.{2} setup.py build_ext --inplace"\
+        .format(pathlib.Path(__file__).parent.absolute(), os.sep, subver)
 
     os.chdir(pathlib.Path(__file__).parent.absolute())
-    if subver < 7:
-        os.chdir("..")
+
+    
+    os.chdir("scarmapper")
     subprocess.run([setup_file], shell=True)
+    os.chdir("..")
     # The sleep is to allow for network or disk latency.
     time.sleep(5.0)
 
 from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.26.0'
+__version__ = '0.26.1'
 __package__ = 'ScarMapper'
 
 
