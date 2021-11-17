@@ -10,6 +10,7 @@ import itertools
 import subprocess
 import time
 import pathos
+import pyfaidx
 import pysam
 from scipy import stats
 from natsort import natsort
@@ -116,7 +117,11 @@ class ScarSearch:
         except KeyError:
             chrm = "chr{}".format(chrm)
 
-        self.target_region = refseq.fetch(chrm, start, stop)
+        try:
+            self.target_region = refseq.fetch(chrm, start, stop)
+        except KeyError:
+            self.target_region = pyfaidx.Fasta(self.args.RefSeq)[0]
+
         # Tool_Box.debug_messenger([target_name, self.target_region])
         self.cutsite_search(target_name, sgrna, chrm, start, stop)
         self.window_mapping()
