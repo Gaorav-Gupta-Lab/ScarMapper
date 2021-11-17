@@ -24,7 +24,7 @@ def pysam_check():
 
 
 def python_check():
-    python_max = '3.8.0'
+    python_max = '3.9.0'
     python_min = '3.5.0'
     if StrictVersion(platform.python_version()) < python_min or StrictVersion(platform.python_version()) > python_max:
         raise SystemExit("\033[1;31mERROR:\033[m Python version must be > v{} and < v{}.  Current Python version is {}"
