@@ -62,7 +62,6 @@ if not cfile or old_file:
         .format(pathlib.Path(__file__).parent.absolute(), os.sep, subver)
 
     os.chdir(pathlib.Path(__file__).parent.absolute())
-
     
     os.chdir("scarmapper")
     subprocess.run([setup_file], shell=True)
@@ -73,7 +72,7 @@ if not cfile or old_file:
 from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.26.1'
+__version__ = '0.26.3'
 __package__ = 'ScarMapper'
 
 
