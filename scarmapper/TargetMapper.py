@@ -38,6 +38,11 @@ class TargetMapper:
         """
 
         phasing_dict = collections.defaultdict(lambda: collections.defaultdict(list))
+
+        # Current TruSeq does not use primer phasing.
+        if self.args.Platform == "TruSeq":
+            return phasing_dict
+
         for sample in self.sample_manifest:
             locus = sample[4]
 
