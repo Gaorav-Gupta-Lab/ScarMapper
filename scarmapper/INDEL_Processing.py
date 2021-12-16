@@ -19,7 +19,7 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow, ScarMapperPlot
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.21.0'
+__version__ = '0.21.1'
 __package__ = 'ScarMapper'
 
 
@@ -911,7 +911,7 @@ class DataProcessing:
 
             elif self.args.Platform == "TruSeq":
                 # The indices are the first 6 nucleotides of the forward read.
-                right_match = Sequence_Magic.match_maker(right_index, fastq1_read.seq[6:])
+                right_match = Sequence_Magic.match_maker(right_index, fastq1_read.seq[:6])
                 left_match = Sequence_Magic.match_maker(left_index, fastq1_read.seq[-6:])
 
             elif self.args.Platform == "Ramsden":
