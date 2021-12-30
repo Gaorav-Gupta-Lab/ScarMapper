@@ -19,7 +19,7 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow, ScarMapperPlot
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.21.1'
+__version__ = '0.21.2'
 __package__ = 'ScarMapper'
 
 
@@ -775,6 +775,9 @@ class DataProcessing:
             key_counts.append(len(self.sequence_dict[key]))
 
         # The lower limit is used when plotting the data.  Generally the lowest values are just noise.
+        if len(key_counts) == 0:
+            self.log.error("No Scar Patterns Found")
+            raise SystemExit(1)
         lower, upper_limit = stats.norm.interval(0.9, loc=statistics.mean(key_counts), scale=stats.sem(key_counts))
         lower_limit = statistics.mean(key_counts)-lower
 
@@ -910,9 +913,9 @@ class DataProcessing:
                 left_match = Sequence_Magic.match_maker(left_index, fastq1_read.name.split(":")[-1].split("+")[1])
 
             elif self.args.Platform == "TruSeq":
-                # The indices are the first 6 nucleotides of the forward read.
-                right_match = Sequence_Magic.match_maker(right_index, fastq1_read.seq[:6])
-                left_match = Sequence_Magic.match_maker(left_index, fastq1_read.seq[-6:])
+                # The indices are the first 6 and last 6 nucleotides of the consensus read.
+                left_match = Sequence_Magic.match_maker(right_index, fastq1_read.seq[:6])
+                right_match = Sequence_Magic.match_maker(left_index, fastq1_read.seq[-6:])
 
             elif self.args.Platform == "Ramsden":
                 if self.args.PEAR:
