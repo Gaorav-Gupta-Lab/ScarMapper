@@ -2,7 +2,7 @@
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599
-@copyright: 2021
+@copyright: 2022
 """
 import csv
 import datetime
@@ -25,18 +25,19 @@ import re
 import pathlib
 from distutils.version import StrictVersion
 import platform
+import gzip
 
 # This is a seriously ugly hack to check the existence and age of the compiled file.
 folder_content = os.listdir("{0}{1}scarmapper{1}".format(pathlib.Path(__file__).parent.absolute(), os.sep))
 python_ver = StrictVersion(platform.python_version())
 
-subver = 5
-if "3.6.0" <= python_ver < "3.7.0":
-    subver = 6
-elif "3.7.0" <= python_ver < "3.8.0":
-    subver = 7
-elif "3.8.0" <= python_ver < "3.9.0":
+subver = 7
+if "3.8.0" <= python_ver < "3.9.0":
     subver = 8
+elif "3.9.0" <= python_ver < "3.10.0":
+    subver = 9
+elif "3.10.0" <= python_ver < "3.11.0":
+    subver = 10
 
 regex = re.compile("SlidingWindow.cpython-3{}.*.so".format(subver))
 cfile = ""
@@ -72,11 +73,11 @@ if not cfile or old_file:
 from scarmapper import INDEL_Processing as Indel_Processing, TargetMapper as Target_Mapper
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.26.4'
+__version__ = '1.0.0'
 __package__ = 'ScarMapper'
 
 
-def pear_consensus(args, log):
+def pear_consensus(args, log, fq1=None, fq2=None):
     """
     This will take the input FASTQ files and use PEAR to generate a consensus file.
     :param args:
@@ -84,6 +85,11 @@ def pear_consensus(args, log):
     :return:
     """
     log.info("Beginning PEAR Consensus")
+    fastq1 = args.FASTQ1
+    fastq2 = args.FASTQ2
+    if fq1:
+        fastq1 = fq1
+        fastq2 = fq2
 
     fastq_consensus_prefix = "{}{}".format(args.WorkingFolder, args.Job_Name)
     fastq_consensus_file = "{}.assembled.fastq".format(fastq_consensus_prefix)
@@ -92,7 +98,7 @@ def pear_consensus(args, log):
     r2_unassembled = "{}.unassembled.reverse.fastq".format(fastq_consensus_prefix)
 
     y = "-y {} ".format(args.Memory)
-    j = "-j {} ".format(int(args.Spawn)-1)
+    j = "-j {} ".format(args.Spawn)
 
     p_value = ''
     if args.PValue:
@@ -115,8 +121,8 @@ def pear_consensus(args, log):
 
     proc = subprocess.run(
         "{}{}Pear{}bin{}./pear -f {} -r {} -o {} {}{}{}{}{}{}{}"
-        .format(pathlib.Path(__file__).parent.absolute(), os.sep, os.sep, os.sep, args.FASTQ1, args.FASTQ2,
-                fastq_consensus_prefix, y, j, n, p_value, min_overlap, quality_threshold, phred_value, test_method),
+        .format(pathlib.Path(__file__).parent.absolute(), os.sep, os.sep, os.sep, fastq1, fastq2, fastq_consensus_prefix,
+                y, j, n, p_value, min_overlap, quality_threshold, phred_value, test_method),
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
     if proc.stderr:
@@ -131,7 +137,8 @@ def pear_consensus(args, log):
 
     file_list = [fastq_consensus_file, r1_unassembled, r2_unassembled]
 
-    if os.stat(discarded_fastq).st_size > 0:
+    # if os.stat(discarded_fastq).st_size > 0:
+    if pathlib.Path(discarded_fastq).exists():
         file_list.append(discarded_fastq)
     else:
         Tool_Box.delete([discarded_fastq])
@@ -142,7 +149,7 @@ def pear_consensus(args, log):
 def main(command_line_args=None):
     """
     Let's get this party started.
-    :param command_line_args:
+    param command_line_args:
     """
     start_time = time.time()
     VersionDependencies.python_check()
@@ -166,13 +173,16 @@ def main(command_line_args=None):
     module_name = ""
     log.info("{} v{}".format(__package__, __version__))
 
+    fq2 = FASTQ_Tools.FASTQ_Reader(args.FASTQ2, log)
+    fq1 = FASTQ_Tools.FASTQ_Reader(args.FASTQ1, log)
+
     if args.IndelProcessing:
         file_list = []
         if args.Platform == "Illumina" or args.Platform == "Ramsden" or args.Platform == "TruSeq":
             log.info("Sending FASTQ files to FASTQ preprocessor.")
 
             if args.PEAR:
-                file_list = pear_consensus(args, log)
+                file_list = pear_consensus(args, log, fq1, fq2)
                 if not file_list:
                     log.error("PEAR failed.  Check logs.")
                     raise SystemExit(1)

@@ -2,27 +2,27 @@
 #Parameter file to run ScarMapper Pipeline
 #Version 1
 
-python3 /full/path/to/scarmapper.py --options_file /full/path/to/run_ScarMapper_IndelProcessins.sh
+python3.10 /mnt/hgfs/OneDrive_UNC/Projects/Programs/ScarMapper/scarmapper.py --options_file /mnt/hgfs/Drive_D/run_ScarMapper_IndelProcessins.sh
 exit
 
 --IndelProcessing	True
 
---FASTQ1	/full/path/to/FASTQ1.gz
---FASTQ2	/full/path/to/FASTQ2.gz
+--FASTQ1	/mnt/hgfs/Drive_D/C226a-Hek293T-siBRCA2-C_R1_001.fastq.gz
+--FASTQ2	/mnt/hgfs/Drive_D/C226a-Hek293T-siBRCA2-C_R2_001.fastq.gz
 
---RefSeq	/full/path/to/reference_sequence.fa
---Master_Index_File	/full/path/to/Master_Index_File
---SampleManifest	/full/path/to/SampleManifest.csv
---TargetFile	/full/path/to/Target_File.txt
---WorkingFolder	/full/path/to/Working_Folder/<Location of output files>
+--RefSeq	/mnt/hgfs/OneDrive/Bioinformatics/RefSeq/GRCh38/GRCh38.p12.fa.bgz
+--Master_Index_File	/mnt/hgfs/Drive_D/MSK_Indices.txt
+--SampleManifest	/mnt/hgfs/Drive_D/MSK_SampleManifest.txt
+--TargetFile	/mnt/hgfs/Drive_D/ScarMapper_Targets.txt
+--WorkingFolder	/mnt/hgfs/Drive_D/
 
---Verbose	# INFO or DEBUG
---Job_Name	# No spaces or special characters, prepended to output files.
+--Verbose	INFO# INFO or DEBUG
+--Job_Name	MSK_Test# No spaces or special characters, prepended to output files.
 --Spawn	3 # How many parallel jobs?  Max should be n-1 threads or cpu's.  Minimum is 1.
---Demultiplex	# True or False.  Write demultiplexed FASTQ files?
+--Demultiplex	False# True or False.  Write demultiplexed FASTQ files?
 --DeleteConsensusFASTQ	True
 --HR_Donor	# 10 - 15 nucleotide sequence for HR Donor search.  Can be left blank. 
---Platform	# Illumina, TruSeq, Ramsden
+--Platform	Illumina# Illumina, TruSeq, Ramsden
 
 --N_Limit	0.01
 --Minimum_Length	100	# Length after trimming
@@ -38,5 +38,5 @@ exit
 --MinConsensusLength	# Default 50
 
 # Plot Options
---PatternThreshold	# Cutoff frequency for patterns to plot such as 0.0001
+--PatternThreshold	0.0001# Cutoff frequency for patterns to plot such as 0.0001
 --FigureType	pdf # svg, jpg, tiff, pdf, png
