@@ -12,6 +12,7 @@ import time
 import pathos
 import pyfaidx
 import pysam
+import math
 from scipy import stats
 from natsort import natsort
 import statistics
@@ -598,7 +599,7 @@ class ScarSearch:
         for i, (lft, rt) in enumerate(zip(gapped_alignment_dict["left"], gapped_alignment_dict["right"])):
 
             if not first_lft:
-                if lft is not "-" and gapped_alignment_dict["left"][i + 1] is not "-":
+                if lft != "-" and gapped_alignment_dict["left"][i + 1] != "-":
                     first_lft = True
 
             if not first_lft:
@@ -606,9 +607,9 @@ class ScarSearch:
 
             if lft == rt:
                 consensus_seq += lft
-            elif lft is "-":
+            elif lft == "-":
                 consensus_seq += rt
-            elif rt is "-":
+            elif rt == "-":
                 consensus_seq += lft
             else:
                 consensus_seq += "N"
@@ -780,7 +781,8 @@ class DataProcessing:
             raise SystemExit(1)
         lower, upper_limit = stats.norm.interval(0.9, loc=statistics.mean(key_counts), scale=stats.sem(key_counts))
         lower_limit = statistics.mean(key_counts)-lower
-
+        if math.isnan(lower_limit):
+            lower_limit = float(self.args.PatternThreshold)*0.1
         return indexed_read_count, lower_limit
 
     def fastq_compress(self, fastq_file_name_list):
@@ -1077,9 +1079,11 @@ class DataProcessing:
                         left_del, right_del, total_ins, microhomology, microhomology_fraction, tmej, tmej_fraction,
                         nhej, nhej_fraction, non_microhomology_del, non_mh_del_fraction, large_ins, large_ins_fraction,
                         other_scar)
-
-        summary_outstring += "\nUnidentified\t{}\t{}" \
-            .format(self.read_count_dict["unidentified"], self.read_count_dict["unidentified"] / self.read_count)
+        try:
+            summary_outstring += "\nUnidentified\t{}\t{}" \
+                .format(self.read_count_dict["unidentified"], self.read_count_dict["unidentified"] / self.read_count)
+        except KeyError:
+            pass
 
         summary_file.write(summary_outstring)
         summary_file.close()

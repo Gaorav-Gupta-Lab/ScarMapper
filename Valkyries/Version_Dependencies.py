@@ -7,11 +7,10 @@ Version 0.1.0
 """
 import platform
 import pysam
-
 from distutils.version import StrictVersion
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.1.0'
+__version__ = '0.1.2'
 
 
 def pysam_check():
@@ -24,8 +23,8 @@ def pysam_check():
 
 
 def python_check():
-    python_max = '3.9.0'
-    python_min = '3.5.0'
+    python_max = '3.11.0'
+    python_min = '3.7.0'
     if StrictVersion(platform.python_version()) < python_min or StrictVersion(platform.python_version()) > python_max:
         raise SystemExit("\033[1;31mERROR:\033[m Python version must be > v{} and < v{}.  Current Python version is {}"
                          .format(python_min, python_max, platform.python_version()))
