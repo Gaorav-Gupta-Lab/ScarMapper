@@ -589,6 +589,7 @@ class FASTQ_Reader:
         Create FASTQ file object.
         :return:
         """
+
         if len(self.input_file) < 3:
             self.log.warning("FASTQ file parameter missing from options file. Correct error and try again.")
             raise SystemExit(1)
