@@ -4,7 +4,7 @@ Draws main figures for ScarMapper
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599
-@copyright: 2021
+@copyright: 2022
 """
 
 import argparse

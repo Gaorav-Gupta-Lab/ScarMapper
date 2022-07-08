@@ -7,7 +7,7 @@
 """
 
 import collections
-from Valkyries import Tool_Box, Sequence_Magic
+from Valkyries import Tool_Box
 import pysam
 
 __author__ = 'Dennis A. Simpson'
@@ -103,5 +103,3 @@ class TargetMapper:
                 (locus_name, chromosome, start_pos, stop_pos, sgrna_seq, rcomp)
 
         return target_dict
-
-

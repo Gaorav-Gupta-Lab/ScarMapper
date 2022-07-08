@@ -2,7 +2,7 @@
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599
-@copyright: 2021
+@copyright: 2022
 """
 import collections
 import datetime
@@ -20,7 +20,7 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow, ScarMapperPlot
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.21.2'
+__version__ = '1.0.0'
 __package__ = 'ScarMapper'
 
 
@@ -82,7 +82,7 @@ class ScarSearch:
     def data_processing(self):
         """
         Generate the consensus sequence and find indels.  Write the frequency file.  Called by pathos pool
-        :return:
+        @return:
         """
 
         self.log.info("Begin Processing {}".format(self.index_name))
@@ -123,7 +123,6 @@ class ScarSearch:
         except KeyError:
             self.target_region = str(pyfaidx.Fasta(self.args.RefSeq)[0]).upper()
 
-        # Tool_Box.debug_messenger([target_name, self.target_region])
         self.cutsite_search(target_name, sgrna, chrm, start, stop)
         self.window_mapping()
         loop_count = 0
@@ -207,8 +206,8 @@ class ScarSearch:
     def common_page_header(self, index_name):
         """
         Generates common page header for frequency and raw data files.
-        :param index_name:
-        :return:
+        param index_name:
+        return:
         """
         date_format = "%a %b %d %H:%M:%S %Y"
         run_stop = datetime.datetime.today().strftime(date_format)
@@ -231,9 +230,9 @@ class ScarSearch:
         """
         Format data and write frequency file.
 
-        :param index_name:
-        :param results_freq_dict:
-        :param junction_type_data:
+        @param index_name:
+        @param results_freq_dict:
+        @param junction_type_data:
         """
         self.log.info("Writing Frequency File for {}".format(index_name))
 
@@ -270,6 +269,10 @@ class ScarSearch:
             rt_template = ""
             target_sequence = self.target_region
             scar_type = "Other"
+            lft_homology = ""
+            lft_homeology = ""
+            rt_homology = ""
+            rt_homeology = ""
 
             # If sgRNA is from 3' strand we need to swap labels and reverse compliment sequences.
             if self.target_dict[target_name][5] == "YES":
@@ -304,6 +307,7 @@ class ScarSearch:
             elif del_size >= 4 and microhomology_size < 2 and ins_size < 5:
                 junction_type_data[4] += key_count
                 scar_type = "Non-MH Deletion"
+                homeology_dict = self.homeology_search(target_sequence, ref_lft_junction, ref_rt_junction)
 
             # Large Insertions with or without Deletions:
             elif ins_size >= 5:
@@ -316,11 +320,18 @@ class ScarSearch:
             else:
                 junction_type_data[3] += key_count
 
-            # Gather up the output data into a dictionary so it can be sorted by count.
+            if scar_type == "Non-MH Deletion":
+                lft_homology = homeology_dict["L0"]
+                lft_homeology = homeology_dict["L1"]
+                rt_homology = homeology_dict["R0"]
+                rt_homeology = homeology_dict["R1"]
+
+            # Gather the output data into a dictionary allowing it to be sorted by count.
             output_dict[key_count, scar_count] = \
                 [key_count, key_frequency, scar_type, lft_del, rt_del, del_size, microhomology, microhomology_size,
                  insertion, ins_size, lft_template, rt_template, consensus_lft_junction, consensus_rt_junction,
-                 ref_lft_junction, ref_rt_junction, consensus, target_sequence]
+                 ref_lft_junction, ref_rt_junction, consensus, target_sequence, lft_homology, lft_homeology,
+                 rt_homology, rt_homeology]
 
             scar_count += 1
 
@@ -329,7 +340,6 @@ class ScarSearch:
         marker_list = []
         label_dict = collections.defaultdict(float)
         for key in natsort.natsorted(output_dict, reverse=True):
-
             frequency_row_list = output_dict[key]
             scar_type = frequency_row_list[2]
             label_dict[scar_type] += frequency_row_list[1]
@@ -342,7 +352,7 @@ class ScarSearch:
             lft_ins_width = frequency_row_list[1]
             rt_ins_width = frequency_row_list[1]
 
-            # This is gathered up to find the largest value.  Used to set the x-axis limits.
+            # This is gathered to find the largest value.  Used to set the x-axis limits.
             marker_list.extend([frequency_row_list[3]+(frequency_row_list[7]*0.5),
                                 frequency_row_list[4]+(frequency_row_list[7]*0.5),
                                 frequency_row_list[9]])
@@ -351,7 +361,7 @@ class ScarSearch:
             lft_del_plot_value = (frequency_row_list[3]+(frequency_row_list[7]*0.5))*-1
             rt_del_plot_value = (frequency_row_list[4]+(frequency_row_list[7]*0.5))
 
-            # Insertions are centered on 0 so we need to take half the value for each side.
+            # Insertions are centered on 0, we need to take half the value for each side.
             lft_ins_plot_value = (frequency_row_list[9] * 0.5) * -1
             rt_ins_plot_value = (frequency_row_list[9] * 0.5)
 
@@ -411,14 +421,70 @@ class ScarSearch:
             ScarMapperPlot.scarmapperplot(self.args, datafile=None, sample_name=sample_name,
                                           plot_data_dict=plot_data_dict, label_dict=label_dict)
 
+    def homeology_search(self, target_sequence, lft_target_junction, rt_target_junction):
+        target_size = 5
+        lft_query = target_sequence[lft_target_junction-target_size:lft_target_junction]
+        rt_query = target_sequence[rt_target_junction:rt_target_junction+target_size]
+
+        # Define upper and lower limits for homeology searching
+        lower_limit = lft_target_junction-50
+        if lower_limit < 25:
+            lower_limit = 25
+        upper_limit = rt_target_junction+50
+        if upper_limit > (len(target_sequence)-25):
+            upper_limit = len(target_sequence)-25
+
+        lft_position = rt_target_junction-3
+        # homeology_dict = {"L0": [[], []], "L1": [[], []], "R0": [[], []], "R1": [[], []]}
+        homeology_dict = {"L0": [], "L1": [], "R0": [], "R1": []}
+
+        # Search from left junction
+        while lft_position < upper_limit:
+            target_segment = target_sequence[lft_position:lft_position+target_size]
+            distance_value = Sequence_Magic.match_maker(target_segment, lft_query)
+            # lft_homeology = lft_position
+            # lft_homeology_seq = lft_query
+            homology = False
+
+            if distance_value == 0:
+                homeology_dict["L0"].append((lft_position, lft_query, target_segment))
+                homology = True
+            elif distance_value == 1:
+                homeology_dict["L1"].append((lft_position, lft_query, target_segment))
+
+            lft_position += 1
+            if homology:
+                lft_position += 1
+
+        # Search from right junction
+        rt_position = lft_target_junction+3
+        while rt_position > lower_limit:
+            target_segment = target_sequence[rt_position-target_size:rt_position]
+            distance_value = Sequence_Magic.match_maker(target_segment, rt_query)
+            rt_homeology = rt_position - target_size
+            # rt_homeology_seq = rt_query
+            homology = False
+
+            if distance_value == 0:
+                homeology_dict["R0"].append((rt_homeology, rt_query, target_segment))
+                homology = True
+            elif distance_value == 1:
+                homeology_dict["R1"].append((rt_homeology, rt_query, target_segment))
+
+            rt_position -= 1
+            if homology:
+                rt_position -= 1
+
+        return homeology_dict
+
     def templated_insertion_search(self, insertion, lft_target_junction, rt_target_junction, target_name):
         """
         Search for left and right templates for insertions.
-        :param insertion:
-        :param lft_target_junction:
-        :param rt_target_junction:
-        :param target_name:
-        :return:
+        @param insertion:
+        @param lft_target_junction:
+        @param rt_target_junction:
+        @param target_name:
+        @return:
         """
         lft_query1 = Sequence_Magic.rcomp(insertion[:5])
         lft_query2 = insertion[-5:]
@@ -466,8 +532,8 @@ class ScarSearch:
     def raw_data_output(self, index_name, read_results_list):
         """
         Handle formatting and writing raw data.
-        :param index_name:
-        :param read_results_list:
+        @param index_name:
+        @param read_results_list:
         """
         results_file = open("{}{}_{}_ScarMapper_Raw_Data.txt"
                             .format(self.args.WorkingFolder, self.args.Job_Name, index_name), "w")
@@ -522,11 +588,11 @@ class ScarSearch:
     def cutsite_search(self, target_name, sgrna, chrm, start, stop):
         """
         Find the sgRNA cutsite on the gapped genomic DNA.
-        :param stop:
-        :param start:
-        :param chrm:
-        :param sgrna:
-        :param target_name:
+        @param stop:
+        @param start:
+        @param chrm:
+        @param sgrna:
+        @param target_name:
         """
 
         lft_position = 0
@@ -560,9 +626,9 @@ class ScarSearch:
     def gapped_aligner(self, fasta_data):
         """
         Generates and returns a simple consensus from the given FASTA data using Muscle.
-        :param: self
-        :param: fasta_data
-        :return:
+        @param: self
+        @param: fasta_data
+        @return:
         """
 
         # Create gapped alignment file in FASTA format using MUSCLE
@@ -636,6 +702,21 @@ class DataProcessing:
         self.fastq2 = fq2
         self.read_count = 0
 
+    def finalize_demultiplexing(self, fastq_data_dict):
+        """
+        Handles writing the final lines to demultiplexed FASTQ files.
+        @param fastq_data_dict:
+        """
+        for index_name in fastq_data_dict:
+            r1_data = fastq_data_dict[index_name]["R1"]
+            r1, r2 = self.fastq_outfile_dict[index_name]
+            r1.write(r1_data)
+            r1.close()
+            if not self.args.PEAR:
+                r2_data = fastq_data_dict[index_name]["R2"]
+                r2.write(r2_data)
+                r2.close()
+
     def consensus_demultiplex(self):
         """
         Takes a FASTQ file of consensus reads and identifies each by index.  Handles writing demultiplexed FASTQ if
@@ -654,16 +735,9 @@ class DataProcessing:
             if self.args.Verbose == "DEBUG":
                 read_limit = 1000000
                 if self.read_count > read_limit:
+
                     if self.args.Demultiplex:
-                        for index_name in fastq_data_dict:
-                            r1_data = fastq_data_dict[index_name]["R1"]
-                            r1, r2 = self.fastq_outfile_dict[index_name]
-                            r1.write(r1_data)
-                            r1.close()
-                            if not self.args.PEAR:
-                                r2_data = fastq_data_dict[index_name]["R2"]
-                                r2.write(r2_data)
-                                r2.close()
+                        self.finalize_demultiplexing(fastq_data_dict)
 
                     Tool_Box.debug_messenger("Limiting Reads Here to {}".format(read_limit))
                     eof = True
@@ -675,15 +749,7 @@ class DataProcessing:
 
             except StopIteration:
                 if self.args.Demultiplex:
-                    for index_name in fastq_data_dict:
-                        r1_data = fastq_data_dict[index_name]["R1"]
-                        r1, r2 = self.fastq_outfile_dict[index_name]
-                        r1.write(r1_data)
-                        r1.close()
-                        if not self.args.PEAR:
-                            r2_data = fastq_data_dict[index_name]["R2"]
-                            r2.write(r2_data)
-                            r2.close()
+                    self.finalize_demultiplexing(fastq_data_dict)
 
                 eof = True
                 continue
@@ -788,7 +854,7 @@ class DataProcessing:
     def fastq_compress(self, fastq_file_name_list):
         """
         Take a list of file names and gzip each file.
-        :param fastq_file_name_list:
+        @param fastq_file_name_list:
         """
         self.log.info("Spawning {} Jobs to Compress {} Files.".format(self.args.Spawn, len(fastq_file_name_list)))
 
@@ -814,7 +880,7 @@ class DataProcessing:
             data_list.append([self.log, self.args, self.version, self.run_start, self.target_dict, self.index_dict,
                               key, self.sequence_dict[key], indexed_read_count, lower_limit])
 
-        # Not sure if clearing this is really necessary but it is not used again so why keep the RAM tied up.
+        # Not sure if clearing this is really necessary, but it is not used again so why keep the RAM tied up.
         self.sequence_dict.clear()
 
         # Each job is a single instance of the ScarSearch class..
@@ -825,12 +891,12 @@ class DataProcessing:
     def dictionary_build(self):
         """
         Build the index dictionary from the index list.
-        :return:
+        @return:
         """
 
         self.log.info("Building DataFrames.")
 
-        # If we are saving the demultipled FASTQ then setup the output files and dataframe.
+        # If we are saving the demultiplexed FASTQ then set up the output files and dataframe.
         if self.args.Demultiplex:
             self.fastq_outfile_dict = collections.defaultdict(list)
             r1 = FASTQ_Tools.Writer(self.log, "{}{}_Unknown_R1.fastq"
@@ -886,9 +952,9 @@ class DataProcessing:
     def index_matching(self, fastq1_read, fastq2_read=None):
         """
         This matches an index sequence with the index found in the sequence reads.
-        :param fastq1_read:
-        :param fastq2_read:
-        :return:
+        @param fastq1_read:
+        @param fastq2_read:
+        @return:
         """
 
         match_found = False
@@ -898,6 +964,7 @@ class DataProcessing:
         left_match = 5
         right_match = 5
 
+        # Set stringency of index match.
         if self.args.Platform == "Illumina":
             mismatch = 1
         elif self.args.Platform == "TruSeq":
@@ -960,7 +1027,8 @@ class DataProcessing:
     def data_output(self, summary_data_list):
         """
         Format data and write the summary file.
-        :param summary_data_list:
+
+        @param summary_data_list:
         """
 
         self.log.info("Formatting data and writing summary file")
