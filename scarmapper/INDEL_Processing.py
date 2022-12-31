@@ -20,7 +20,7 @@ from Valkyries import Tool_Box, Sequence_Magic, FASTQ_Tools
 from scarmapper import SlidingWindow, ScarMapperPlot
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '1.0.0'
+__version__ = '2.0.0 BETA'
 __package__ = 'ScarMapper'
 
 
@@ -38,7 +38,7 @@ class ScarSearch:
         self.lower_limit_count = lower_limit_count
         self.indexed_read_count = indexed_read_count
         self.summary_data = None
-        self.target_region = ""
+        self.target_region = None
         self.cutsite = None
         self.lower_limit = None
         self.upper_limit = None
@@ -92,7 +92,10 @@ class ScarSearch:
         """
         target_name = self.index_dict[self.index_name][7]
         self.summary_data = [self.index_name, 0, 0, 0, 0, 0, [0, 0], [0, 0], 'junction data', target_name, [0, 0]]
-        junction_type_data = [0, 0, 0, 0, 0]
+
+        # TMEJ, NHEJ, Insertions, Other, NonMH, SNV
+        junction_type_data = [0, 0, 0, 0, 0, 0]
+
         read_results_list = []
         results_freq_dict = collections.defaultdict(list)
         refseq = pysam.FastaFile(self.args.RefSeq)
@@ -106,7 +109,6 @@ class ScarSearch:
 
         # Get the genomic 3' coordinate of the reference target region.
         stop = int(self.target_dict[target_name][3])
-
         chrm = self.target_dict[target_name][1]
 
         # Get the sequence of the sgRNA.
@@ -119,7 +121,7 @@ class ScarSearch:
             chrm = "chr{}".format(chrm)
 
         try:
-            self.target_region = refseq.fetch(chrm, start, stop)
+            self.target_region = str(refseq.fetch(chrm, start, stop)).upper()
         except KeyError:
             self.target_region = str(pyfaidx.Fasta(self.args.RefSeq)[0]).upper()
 
@@ -234,23 +236,51 @@ class ScarSearch:
         @param results_freq_dict:
         @param junction_type_data:
         """
-        self.log.info("Writing Frequency File for {}".format(index_name))
+
+        self.log.info("Working on Frequency Files for {}".format(index_name))
+
+        # Dictionaries to hold the left and right kmer sequences
+        lft_snv_dict = collections.defaultdict(list)
+        lft_snv_dict_all = collections.defaultdict(list)
+        rt_snv_dict = collections.defaultdict(list)
+        rt_snv_dict_all = collections.defaultdict(list)
+        for i in range(len(self.left_target_windows[0])):
+            lft_snv_dict[i] = []
+            lft_snv_dict_all[i] = []
+            rt_snv_dict_all[i] = []
 
         target_name = self.index_dict[index_name][7]
 
+        # Initialize output string with header information
         freq_results_outstring = \
             "{}# Total\tFrequency\tScar Type\tLeft Deletions\tRight Deletions\tDeletion Size\tMicrohomology\t" \
             "Microhomology Size\tInsertion\tInsertion Size\tLeft Template\tRight Template\tConsensus Left Junction\t" \
-            "Consensus Right Junction\tTarget Left Junction\tTarget Right Junction\tConsensus\tTarget Region\n"\
+            "Consensus Right Junction\tTarget Left Junction\tTarget Right Junction\tLeft Homeology\t" \
+            "Left Homeology Position\tLeft Query Seq\tLeft Homeologous Seq\tRight Homeology\t" \
+            "Right Homeology Position\tRight Query Seq\tRight Homeologous Seq\tConsensus\tTarget Region\n"\
             .format(self.common_page_header(index_name))
-        output_dict = {}
-        scar_count = 0
-        for freq_key in results_freq_dict:
-            key_count = results_freq_dict[freq_key][0]
 
-            try:
-                key_frequency = key_count / (self.summary_data[1] - self.summary_data[6][1])
-            except ZeroDivisionError:
+        # Initialize kmer data.
+        lft_kmer = self.left_target_windows[0]
+        rt_kmer = self.right_target_windows[0]
+        kmer_size = len(lft_kmer)
+
+        output_dict = {}
+        # Total unique scars
+        scar_count = 0
+
+        # Total of all scars
+        total_scars = 0
+
+        for freq_key in results_freq_dict:
+            scar_count += 1
+            key_count = results_freq_dict[freq_key][0]
+            total_scars += key_count
+            reads_passing_count = self.summary_data[1] - self.summary_data[6][1]
+
+            if reads_passing_count > 0:
+                key_frequency = key_count/reads_passing_count
+            else:
                 key_frequency = 0
 
             lft_del = len(results_freq_dict[freq_key][1][0])
@@ -269,15 +299,21 @@ class ScarSearch:
             rt_template = ""
             target_sequence = self.target_region
             scar_type = "Other"
-            lft_homology = ""
             lft_homeology = ""
-            rt_homology = ""
+            lft_homeology_pos = ""
+            lft_homeology_query = ""
+            lft_homeology_seq = ""
             rt_homeology = ""
+            rt_homeology_pos = ""
+            rt_homeology_query = ""
+            rt_homeology_seq = ""
 
             # If sgRNA is from 3' strand we need to swap labels and reverse compliment sequences.
             if self.target_dict[target_name][5] == "YES":
                 rt_del = len(results_freq_dict[freq_key][1][0])
                 lft_del = len(results_freq_dict[freq_key][1][1])
+                rt_kmer = Sequence_Magic.rcomp(self.left_target_windows[0])
+                lft_kmer = Sequence_Magic.rcomp(self.right_target_windows[0])
                 microhomology = Sequence_Magic.rcomp(microhomology)
                 insertion = Sequence_Magic.rcomp(insertion)
                 consensus = Sequence_Magic.rcomp(consensus)
@@ -293,6 +329,27 @@ class ScarSearch:
             if results_freq_dict[freq_key][1][9] == "HR":
                 scar_type = "HR"
 
+            # SNV Counts
+            elif del_size > 1 and del_size == ins_size and lft_del <= kmer_size and rt_del <= kmer_size:
+                if lft_del > 1:
+                    position = 0
+                    for i in range(kmer_size-lft_del, kmer_size):
+                        if not insertion[position] == lft_kmer[i]:
+                            lft_snv_dict[i].append(insertion[position])
+                            lft_snv_dict_all[i].extend([insertion[position]]*key_count)
+                        position += 1
+
+                if rt_del > 1:
+                    position = len(insertion)-rt_del
+                    for i in range(rt_del):
+                        if not insertion[position] == rt_kmer[i]:
+                            rt_snv_dict[i].append(insertion[position])
+                            rt_snv_dict_all[i].extend([insertion[position]]*key_count)
+                    position += 1
+
+                junction_type_data[5] += key_count
+                scar_type = "SNV"
+
             # TMEJ counts
             elif del_size >= 4 and microhomology_size >= 2:
                 junction_type_data[0] += key_count
@@ -307,7 +364,9 @@ class ScarSearch:
             elif del_size >= 4 and microhomology_size < 2 and ins_size < 5:
                 junction_type_data[4] += key_count
                 scar_type = "Non-MH Deletion"
-                homeology_dict = self.homeology_search(target_sequence, ref_lft_junction, ref_rt_junction)
+                left_list, right_list = \
+                    self.homeology_search(consensus, consensus_lft_junction, consensus_rt_junction, target_sequence,
+                                          insertion, ref_lft_junction, ref_rt_junction)
 
             # Large Insertions with or without Deletions:
             elif ins_size >= 5:
@@ -315,25 +374,31 @@ class ScarSearch:
                 scar_type = "Insertion"
                 lft_template, rt_template = \
                     self.templated_insertion_search(insertion, ref_lft_junction, ref_rt_junction, target_name)
+                left_list, right_list = \
+                    self.homeology_search(consensus, consensus_lft_junction, consensus_rt_junction, target_sequence,
+                                          insertion, ref_lft_junction, ref_rt_junction)
 
             # Scars not part of the previous four
             else:
                 junction_type_data[3] += key_count
 
-            if scar_type == "Non-MH Deletion":
-                lft_homology = homeology_dict["L0"]
-                lft_homeology = homeology_dict["L1"]
-                rt_homology = homeology_dict["R0"]
-                rt_homeology = homeology_dict["R1"]
+            if scar_type == "Non-MH Deletion" or scar_type == "Insertion":
+                lft_homeology = left_list[0]
+                lft_homeology_pos = left_list[1]
+                lft_homeology_query = left_list[2]
+                lft_homeology_seq = left_list[3]
+                rt_homeology = right_list[0]
+                rt_homeology_pos = right_list[1]
+                rt_homeology_query = right_list[2]
+                rt_homeology_seq = right_list[3]
 
             # Gather the output data into a dictionary allowing it to be sorted by count.
             output_dict[key_count, scar_count] = \
                 [key_count, key_frequency, scar_type, lft_del, rt_del, del_size, microhomology, microhomology_size,
                  insertion, ins_size, lft_template, rt_template, consensus_lft_junction, consensus_rt_junction,
-                 ref_lft_junction, ref_rt_junction, consensus, target_sequence, lft_homology, lft_homeology,
-                 rt_homology, rt_homeology]
-
-            scar_count += 1
+                 ref_lft_junction, ref_rt_junction, lft_homeology, lft_homeology_pos, lft_homeology_query,
+                 lft_homeology_seq, rt_homeology, rt_homeology_pos, rt_homeology_query, rt_homeology_seq, consensus,
+                 target_sequence]
 
         # Sort the dictionary and format the output file.
         plot_data_dict = collections.defaultdict(list)
@@ -342,13 +407,18 @@ class ScarSearch:
         for key in natsort.natsorted(output_dict, reverse=True):
             frequency_row_list = output_dict[key]
             scar_type = frequency_row_list[2]
-            label_dict[scar_type] += frequency_row_list[1]
+            # label_dict[scar_type] += frequency_row_list[1]
+            # Frequency of scar pattern relative to all scars counted
+            label_dict[scar_type] += frequency_row_list[0] / total_scars
 
-            # Plotting all scar patterns is messy.  This provides a cutoff.
+            # Plotting all scar patterns is messy.  This provides a cutoff.  Also gives a minimum width to the bar.
             if frequency_row_list[1] < float(self.args.PatternThreshold):
                 continue
+            elif frequency_row_list[1] < 0.0025:
+                frequency_row_list[1] = 0.0025
 
             y_value = frequency_row_list[1]*0.5
+
             lft_ins_width = frequency_row_list[1]
             rt_ins_width = frequency_row_list[1]
 
@@ -395,6 +465,8 @@ class ScarSearch:
                 plot_data_dict[scar_type][7] \
                     .append(previous_y + 0.002 + (0.5 * previous_freq) + y_value)
 
+            # The frequency in the output file should be scar_pattern/total_scars not scar_pattern/scar_count
+            frequency_row_list[1] = frequency_row_list[0] / total_scars
             freq_results_outstring += "{}\n".format("\t".join(str(n) for n in frequency_row_list))
 
         freq_results_file = \
@@ -403,6 +475,57 @@ class ScarSearch:
 
         freq_results_file.write(freq_results_outstring)
         freq_results_file.close()
+
+        # Process SNV data
+        if junction_type_data[5] > 0:
+            snv_data = collections.defaultdict(list)
+            snv_data_all = collections.defaultdict(list)
+            snv_outdata = collections.defaultdict(str)
+            snv_outdata_all = collections.defaultdict(str)
+            nt_list = ["G", "A", "T", "C"]
+
+            # Build our data dictionary
+            for v in nt_list:
+                snv_data[v] = [0]*(2*kmer_size)
+                snv_data_all[v] = [0]*(2*kmer_size)
+                snv_outdata[v] = ""
+                snv_outdata_all[v] = ""
+
+            for i in range(kmer_size):
+                for nt in nt_list:
+                    snv_data[nt][i] += lft_snv_dict[i].count(nt)
+                    snv_data_all[nt][i] += lft_snv_dict_all[i].count(nt)
+                    snv_data[nt][i+kmer_size] += rt_snv_dict[i].count(nt)
+                    snv_data_all[nt][i+kmer_size] += rt_snv_dict_all[i].count(nt)
+
+            # Make the kmer sequence label
+            lft_kmer_string = "\t" .join(lft_kmer)
+            rt_kmer_string = "\t" .join(rt_kmer)
+
+            lft_position_label = ""
+            rt_position_label = ""
+            for i in range(kmer_size):
+                lft_position_label += "\t{}".format(-1*(kmer_size-i))
+                rt_position_label += "\t{}".format(i+1)
+            snv_outstring = "{}\n\n# Values normalized to number of SNV scars\n\t{}\t{}\n# NT{}{}"\
+                            .format(self.common_page_header(index_name), lft_kmer_string, rt_kmer_string,
+                                    lft_position_label, rt_position_label)
+            snv_all_outstring = "\n\n\n# Values normalized to total number of scars\n\t{}\t{}\n# NT{}{}"\
+                                .format(lft_kmer_string, rt_kmer_string, lft_position_label, rt_position_label)
+            for nt in nt_list:
+                snv_outstring += "\n# {}".format(nt)
+                snv_all_outstring += "\n# {}".format(nt)
+
+                for v in snv_data[nt]:
+                    snv_outstring += "\t{}".format(round(v/scar_count, 4))
+                for v in snv_data_all[nt]:
+                    snv_all_outstring += "\t{}".format(round(v/total_scars, 4))
+
+            snv_outfile = \
+                open("{}{}_{}_SNV_Frequency.txt"
+                     .format(self.args.WorkingFolder, self.args.Job_Name, index_name), "w")
+            snv_outfile.write(snv_outstring+snv_all_outstring)
+            snv_outfile.close()
 
         # add the junction list to the summary data
         self.summary_data[8] = junction_type_data
@@ -421,61 +544,106 @@ class ScarSearch:
             ScarMapperPlot.scarmapperplot(self.args, datafile=None, sample_name=sample_name,
                                           plot_data_dict=plot_data_dict, label_dict=label_dict)
 
-    def homeology_search(self, target_sequence, lft_target_junction, rt_target_junction):
+    def homeology_search(self, consensus, consensus_lft_junction, consensus_rt_junction, target_sequence, insertion,
+                         ref_lft_junction, ref_rt_junction):
+        """
+
+        @param ref_rt_junction:
+        @param ref_lft_junction:
+        @param consensus_rt_junction:
+        @param consensus_lft_junction:
+        @param consensus:
+        @param insertion:
+        @param target_sequence:
+        @return:
+        """
+
         target_size = 5
-        lft_query = target_sequence[lft_target_junction-target_size:lft_target_junction]
-        rt_query = target_sequence[rt_target_junction:rt_target_junction+target_size]
+        junction_padding = target_size
+        if ref_rt_junction-ref_lft_junction < target_size:
+            junction_padding = ref_rt_junction-ref_lft_junction
+        iteration_limit = target_size
 
+        lft_query = \
+            "{}".format(consensus[consensus_lft_junction - target_size + len(insertion):
+                                  consensus_lft_junction + len(insertion)])
+        rt_query = \
+            "{}".format(consensus[consensus_rt_junction-len(insertion):
+                                  consensus_rt_junction-len(insertion)+target_size])
+        '''
+        if insertion:
+            lft_query = \
+                "{}{}".format(target_sequence[ref_lft_junction-target_size+len(insertion):ref_lft_junction],
+                              insertion)
+
+            rt_query = \
+                "{}{}".format(target_sequence[ref_rt_junction:ref_rt_junction+target_size-len(insertion)],
+                              insertion)
+        else:
+            lft_query = target_sequence[ref_lft_junction - target_size:ref_lft_junction]
+            rt_query = target_sequence[ref_rt_junction:ref_rt_junction + target_size]
+        
         # Define upper and lower limits for homeology searching
-        lower_limit = lft_target_junction-50
-        if lower_limit < 25:
-            lower_limit = 25
-        upper_limit = rt_target_junction+50
-        if upper_limit > (len(target_sequence)-25):
-            upper_limit = len(target_sequence)-25
+        lower_limit = ref_lft_junction - target_size
+        if lower_limit < target_size:
+            lower_limit = target_size
 
-        lft_position = rt_target_junction-3
-        # homeology_dict = {"L0": [[], []], "L1": [[], []], "R0": [[], []], "R1": [[], []]}
-        homeology_dict = {"L0": [], "L1": [], "R0": [], "R1": []}
+        upper_limit = ref_rt_junction+(target_size*2)
+        if upper_limit > (len(target_sequence)-target_size*2):
+            upper_limit = len(target_sequence)-target_size*2
+        '''
+
+        left_list = ["", "", "", ""]
+        right_list = ["", "", "", ""]
 
         # Search from left junction
-        while lft_position < upper_limit:
+        iteration_count = 0
+        homology = False
+        homeology = False
+        lft_position = ref_rt_junction - junction_padding
+        while iteration_count < iteration_limit and not homology:
             target_segment = target_sequence[lft_position:lft_position+target_size]
             distance_value = Sequence_Magic.match_maker(target_segment, lft_query)
-            # lft_homeology = lft_position
-            # lft_homeology_seq = lft_query
-            homology = False
+            lft_homeology_position = iteration_count - junction_padding
 
             if distance_value == 0:
-                homeology_dict["L0"].append((lft_position, lft_query, target_segment))
+                left_list = 0, lft_homeology_position, lft_query, target_segment
                 homology = True
-            elif distance_value == 1:
-                homeology_dict["L1"].append((lft_position, lft_query, target_segment))
 
+            elif distance_value == 1 and not homeology and target_segment[-1] == lft_query[-1]:
+                left_list = 1, lft_homeology_position, lft_query, target_segment
+                homeology = True
+
+            iteration_count += 1
             lft_position += 1
             if homology:
                 lft_position += 1
 
         # Search from right junction
-        rt_position = lft_target_junction+3
-        while rt_position > lower_limit:
+        rt_position = ref_lft_junction+junction_padding
+        iteration_count = 0
+        homology = False
+        homeology = False
+        while iteration_count < iteration_limit and not homology:
             target_segment = target_sequence[rt_position-target_size:rt_position]
             distance_value = Sequence_Magic.match_maker(target_segment, rt_query)
-            rt_homeology = rt_position - target_size
-            # rt_homeology_seq = rt_query
-            homology = False
+            # rt_homeology = rt_position - target_size
 
+            # rt_homeology_position = consensus_lft_junction - iteration_count + junction_padding
+            rt_homeology_position = iteration_count-junction_padding
             if distance_value == 0:
-                homeology_dict["R0"].append((rt_homeology, rt_query, target_segment))
+                right_list = 0, rt_homeology_position, rt_query, target_segment
                 homology = True
-            elif distance_value == 1:
-                homeology_dict["R1"].append((rt_homeology, rt_query, target_segment))
+            elif distance_value == 1 and not homeology and target_segment[0] == rt_query[0]:
+                right_list = 1, rt_homeology_position, rt_query, target_segment
+                homeology = True
 
+            iteration_count += 1
             rt_position -= 1
             if homology:
                 rt_position -= 1
 
-        return homeology_dict
+        return left_list, right_list
 
     def templated_insertion_search(self, insertion, lft_target_junction, rt_target_junction, target_name):
         """
@@ -763,8 +931,7 @@ class DataProcessing:
                               .format(self.read_count, block_time, elapsed_time))
 
             # Match read with library index.
-            match_found, left_seq, right_seq, index_name, fastq1_read, fastq2_read = \
-                self.index_matching(fastq1_read, fastq2_read)
+            match_found, left_seq, right_seq, index_name = self.index_matching(fastq1_read, fastq2_read)
 
             if match_found:
                 indexed_read_count += 1
@@ -773,6 +940,7 @@ class DataProcessing:
                 r2_found = False
                 r1_found = False
                 if self.args.Platform == "Illumina":
+                    self.sequence_dict[index_name].append(fastq1_read.seq)
                     # Score the phasing and place the reads in a dictionary.
                     for r2_phase, r1_phase in zip(self.phase_dict[locus]["R2"], self.phase_dict[locus]["R1"]):
 
@@ -803,12 +971,6 @@ class DataProcessing:
                     if not r1_found:
                         self.phase_count[phase_key]["No Read 1 Phasing"] += 1
 
-                    # The adapters on Gupta Lab AAVS1.1 are reversed causing the reads to be reversed.
-                    if locus == "AAVS1.1":
-                        self.sequence_dict[index_name].append(fastq1_read.seq)
-                    else:
-                        self.sequence_dict[index_name].append(fastq1_read.seq)
-
                 elif self.args.Platform == "TruSeq":
                     self.sequence_dict[index_name].append(right_seq)
 
@@ -830,7 +992,8 @@ class DataProcessing:
 
             elif self.args.Demultiplex and not match_found:
                 fastq_data_dict['Unknown']["R1"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
-                fastq_data_dict['Unknown']["R2"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
+                if not self.args.PEAR:
+                    fastq_data_dict['Unknown']["R2"].append([fastq1_read.name, fastq1_read.seq, fastq1_read.qual])
 
                 fastq_file_name_list.append("{}{}_Unknown_Consensus.fastq"
                                             .format(self.args.WorkingFolder, self.args.Job_Name))
@@ -845,10 +1008,16 @@ class DataProcessing:
         if len(key_counts) == 0:
             self.log.error("No Scar Patterns Found")
             raise SystemExit(1)
-        lower, upper_limit = stats.norm.interval(0.9, loc=statistics.mean(key_counts), scale=stats.sem(key_counts))
-        lower_limit = statistics.mean(key_counts)-lower
+
+        if len(key_counts) > 1:
+            lower, upper_limit = stats.norm.interval(0.9, loc=statistics.mean(key_counts), scale=stats.sem(key_counts))
+            lower_limit = statistics.mean(key_counts) - lower
+        else:
+            # if there is only one sample, we cannot do any stats
+            lower_limit = float("NaN")
+
         if math.isnan(lower_limit):
-            lower_limit = float(self.args.PatternThreshold)*0.1
+            lower_limit = float(self.args.PatternThreshold)*0.00001
         return indexed_read_count, lower_limit
 
     def fastq_compress(self, fastq_file_name_list):
@@ -901,8 +1070,10 @@ class DataProcessing:
             self.fastq_outfile_dict = collections.defaultdict(list)
             r1 = FASTQ_Tools.Writer(self.log, "{}{}_Unknown_R1.fastq"
                                     .format(self.args.WorkingFolder, self.args.Job_Name))
-            r2 = FASTQ_Tools.Writer(self.log, "{}{}_Unknown_R2.fastq"
-                                    .format(self.args.WorkingFolder, self.args.Job_Name))
+            r2 = ""
+            if not self.args.PEAR:
+                r2 = FASTQ_Tools.Writer(self.log, "{}{}_Unknown_R2.fastq"
+                                        .format(self.args.WorkingFolder, self.args.Job_Name))
             self.fastq_outfile_dict['Unknown'] = [r1, r2]
 
         # ToDo: call the demultiplex stuff from FASTQ_Tools.
@@ -1010,19 +1181,21 @@ class DataProcessing:
                 match_found = True
                 if not fastq2_read:
                     break
-
+            '''
             if match_found and fastq2_read:
                 # iSeq runs generally have low quality reads on the 3' ends.  This does a blanket trim to remove them.
                 left_seq = fastq2_read.seq[:-5]
                 right_seq = fastq1_read.seq[:-5]
                 break
+            '''
 
         if not match_found:
             if 'unidentified' not in self.read_count_dict:
                 self.read_count_dict['unidentified'] = 0
             self.read_count_dict['unidentified'] += 1
 
-        return match_found, left_seq, right_seq, index_key, fastq1_read, fastq2_read
+        # return match_found, left_seq, right_seq, index_key, fastq1_read, fastq2_read
+        return match_found, left_seq, right_seq, index_key
 
     def data_output(self, summary_data_list):
         """

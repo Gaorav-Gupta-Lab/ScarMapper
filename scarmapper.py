@@ -15,6 +15,7 @@ import argparse
 import sys
 import time
 import pathos
+import pyfaidx
 from natsort import natsort
 from scipy import stats
 from distutils.util import strtobool
@@ -24,6 +25,7 @@ from scarmapper import ScarMapperPlot
 import re
 import pathlib
 import platform
+import pysam
 # import gzip
 
 # This is a seriously ugly hack to check the existence and age of the compiled file.
@@ -121,9 +123,9 @@ def pear_consensus(args, log, fq1=None, fq2=None):
         n = "-n {} ".format(args.MinConsensusLength)
 
     proc = subprocess.run(
-        "{}{}Pear{}bin{}./pear -f {} -r {} -o {} {}{}{}{}{}{}{}"
-        .format(pathlib.Path(__file__).parent.absolute(), os.sep, os.sep, os.sep, fastq1, fastq2, fastq_consensus_prefix,
-                y, j, n, p_value, min_overlap, quality_threshold, phred_value, test_method),
+        "{0}{1}Pear{1}bin{1}./pear -f {2} -r {3} -o {4} {5}{6}{7}{8}{9}{10}{11}"
+        .format(pathlib.Path(__file__).parent.absolute(), os.sep, fastq1, fastq2, fastq_consensus_prefix, y, j, n,
+                p_value, min_overlap, quality_threshold, phred_value, test_method),
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
     if proc.stderr:
@@ -138,7 +140,6 @@ def pear_consensus(args, log, fq1=None, fq2=None):
 
     file_list = [fastq_consensus_file, r1_unassembled, r2_unassembled]
 
-    # if os.stat(discarded_fastq).st_size > 0:
     if pathlib.Path(discarded_fastq).exists():
         file_list.append(discarded_fastq)
     else:
@@ -151,6 +152,7 @@ def preprocess_bad_fastq(args, log):
 
     fq2 = FASTQ_Tools.FASTQ_Reader(args.FASTQ2, log)
     fq1 = FASTQ_Tools.FASTQ_Reader(args.FASTQ1, log)
+
     # MSK specific code
     if pathlib.Path("{}{}_corrected_R1.fastq".format(args.WorkingFolder, args.Job_Name)).exists():
         Tool_Box.delete(["{}{}_corrected_R1.fastq".format(args.WorkingFolder, args.Job_Name),
@@ -222,7 +224,7 @@ def preprocess_bad_fastq(args, log):
 def main(command_line_args=None):
     """
     Let's get this party started.
-    param command_line_args:
+    @param command_line_args
     """
     start_time = time.time()
     VersionDependencies.python_check()
@@ -259,7 +261,6 @@ def main(command_line_args=None):
                     log.error("PEAR failed.  Check logs.")
                     raise SystemExit(1)
                 fastq_consensus = file_list[0]
-
                 fq1 = FASTQ_Tools.FASTQ_Reader(fastq_consensus, log)
                 fq2 = None
 
@@ -438,7 +439,7 @@ def main(command_line_args=None):
     log.info("****ScarMapper {0} complete ({1} seconds, {2} Mb peak memory).****"
              .format(module_name, elapsed_time, Tool_Box.peak_memory(), warning))
 
-    # We need to quit otherwise Python will not release the log file on virtual Linux.
+    # We need to quit otherwise Python will not release the log file on some virtual Linux.
     exit(0)
 
 
@@ -449,7 +450,6 @@ def error_checking(args):
     :param args:
     """
 
-    # if not os.path.exists(args.WorkingFolder):
     if not pathlib.Path(args.WorkingFolder).exists():
         print("\033[1;31mERROR:\n\tWorking Folder Path: {} Not Found.  Check Options File."
               .format(args.WorkingFolder))
@@ -476,6 +476,29 @@ def error_checking(args):
     if getattr(args, "ConsensusSequence", False) and not pathlib.Path(args.ConsensusSequence).exists():
         print("\033[1;31mERROR:\n\t--ConsensusSequence: {} Not Found.  Check Options File."
               .format(args.FASTQ2))
+        raise SystemExit(1)
+
+    if not getattr(args, "RefSeq", False):
+        print("\033[1;31mERROR:\n\t--RefSeq Not Set.  Check Options File.")
+        raise SystemExit(1)
+    elif "{}".format(os.sep) in args.RefSeq and not os.path.exists(args.RefSeq):
+        print("\033[1;31mERROR:\n\t--RefSeq: {} Not Found.  Check Options File."
+              .format(args.RefSeq))
+        raise SystemExit(1)
+
+    if getattr(args, "Master_Index_File", False) and not pathlib.Path(args.Master_Index_File).exists():
+        print("\033[1;31mERROR:\n\t--Master_Index_File: {} Not Found.  Check Options File."
+              .format(args.Master_Index_File))
+        raise SystemExit(1)
+
+    if getattr(args, "SampleManifest", False) and not pathlib.Path(args.SampleManifest).exists():
+        print("\033[1;31mERROR:\n\t--SampleManifest: {} Not Found.  Check Options File."
+              .format(args.SampleManifest))
+        raise SystemExit(1)
+
+    if getattr(args, "TargetFile", False) and not pathlib.Path(args.TargetFile).exists():
+        print("\033[1;31mERROR:\n\t--TargetFile: {} Not Found.  Check Options File."
+              .format(args.TargetFile))
         raise SystemExit(1)
 
     return args
