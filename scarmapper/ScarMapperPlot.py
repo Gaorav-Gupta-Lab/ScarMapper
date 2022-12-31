@@ -18,7 +18,14 @@ __version__ = '0.3.0'
 
 
 def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, label_dict=None):
+    """
 
+    @param args:
+    @param datafile:
+    @param sample_name:
+    @param plot_data_dict:
+    @param label_dict:
+    """
     try:
         datafile = args.DataFile
     except AttributeError:
@@ -62,7 +69,7 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
 
     # [Bar Width, lft_del_plot_value, rt_del_plot_value, lft_ins_plot_value, rt_ins_plot_value, left ins width, right ins width, y-value]
 
-    # With HR some of the scartypes are empty causing a plot error.
+    # With HR, some of the scartypes are empty causing a plot error.
     scar_list = ['NHEJ', 'TMEJ', 'Non-MH Deletion', 'Insertion']
     for scartype in scar_list:
         if scartype not in plot_data_dict:
@@ -79,6 +86,7 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     y_nhej = plot_data_dict['NHEJ'][7]
 
     # Common TMEJ
+    """
     width_tmej = ""
     x_lft_del_tmej = ""
     x_rt_del_tmej = ""
@@ -87,6 +95,7 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
     l_ins_width_tmej = ""
     r_ins_width_tmej = ""
     y_tmej = ""
+    """
 
     # Common TMEJ
     width_tmej = plot_data_dict['TMEJ'][0]
@@ -179,7 +188,7 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
 
     # Add labels to X-axis and each plot.
     ax[3].set_xlabel('INDEL Size', fontname="sans-serif")
-
+    """"""
     ax[0].annotate('Insertion {}'.format(round(label_dict['Insertion'], 3)),
                    xy=(ax[0].get_xlim()[1] * -0.98, ax[0].get_ylim()[1] * 0.9), color=insertion_color,
                    fontname="sans-serif", fontsize=14)
@@ -188,7 +197,6 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
                    xy=(ax[1].get_xlim()[1] * -0.98, ax[1].get_ylim()[1] * 0.9), color=non_mh_del_color,
                    fontname="sans-serif", fontsize=14)
 
-    # ax[2].annotate('Non-PolQ MH', xy=(ax[2].get_xlim()[1] * -0.98, ax[2].get_ylim()[1] * 0.9))
     ax[2].annotate('TMEJ {}'.format(round(label_dict['TMEJ'], 3)),
                    xy=(ax[2].get_xlim()[1] * -0.98, ax[2].get_ylim()[1] * 0.9), color=tmej_color,
                    fontname="sans-serif", fontsize=14)
@@ -203,8 +211,9 @@ def scarmapperplot(args, datafile=None, sample_name=None, plot_data_dict=None, l
         with PdfPages(output_file) as pdf:
             pdf.savefig(fig)
             plt.close()
+
     else:
-        plt.savefig(output_file, dpi=800)
+        plt.savefig(output_file, dpi=1200)
         plt.close()
         # plt.show()
 

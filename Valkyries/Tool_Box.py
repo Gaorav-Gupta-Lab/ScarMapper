@@ -400,35 +400,35 @@ def debug_messenger(reason: str = None):
 
 
 def options_file(options_parser):
-        """
-        This function parses the options file and adds the data to the argparse object.
-        :param: options_parser
-        :return:
-        """
-        count = 0
-        config_file = options_parser.parse_args().options_file
+    """
+    This function parses the options file and adds the data to the argparse object.
+    :param: options_parser
+    :return:
+    """
+    count = 0
+    config_file = options_parser.parse_args().options_file
 
-        if not os.path.isfile(config_file):
-            print("\033[1;31mWARNING:\n\tOptions_File {} Not Found.  Check File Name and Path.".format(config_file))
-            raise SystemExit(1)
+    if not os.path.isfile(config_file):
+        print("\033[1;31mWARNING:\n\tOptions_File {} Not Found.  Check File Name and Path.".format(config_file))
+        raise SystemExit(1)
 
-        options = csv.reader(open(config_file), delimiter='\t')
+    options = csv.reader(open(config_file), delimiter='\t')
 
-        for line in options:
-            count += 1
-            if len(line) < 2 or "#" in str(line[0]):  # Skip lines that are comments or blank.
-                continue
+    for line in options:
+        count += 1
+        if len(line) < 2 or "#" in str(line[0]):  # Skip lines that are comments or blank.
+            continue
 
-            try:
-                value = re.sub(r"[\s]", "", line[1].split("#")[0])  # Strip out any end of line comments and whitespace.
+        try:
+            value = re.sub(r"[\s]", "", line[1].split("#")[0])  # Strip out any end of line comments and whitespace.
 
-            except IndexError:
-                raise SystemExit("There is a syntax error in the options file on line " .format(count))
+        except IndexError:
+            raise SystemExit("There is a syntax error in the options file on line " .format(count))
 
-            key = line[0].strip('--')
-            options_parser.add_argument(line[0], dest=key, default=value)
+        key = line[0].strip('--')
+        options_parser.add_argument(line[0], dest=key, default=value)
 
-        return options_parser
+    return options_parser
 
 
 class FileParser:
