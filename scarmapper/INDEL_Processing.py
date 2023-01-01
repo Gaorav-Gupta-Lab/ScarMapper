@@ -102,13 +102,13 @@ class ScarSearch:
 
         # Get the genomic 5' coordinate of the reference target region.
         try:
-            start = int(self.target_dict[target_name][2])
+            start = self.target_dict[target_name][2]
         except IndexError:
             self.log.error("Target file incorrectly formatted for {}".format(target_name))
             return
 
         # Get the genomic 3' coordinate of the reference target region.
-        stop = int(self.target_dict[target_name][3])
+        stop = self.target_dict[target_name][3]
         chrm = self.target_dict[target_name][1]
 
         # Get the sequence of the sgRNA.
@@ -135,7 +135,7 @@ class ScarSearch:
         for seq in self.sequence_list:
             loop_count += 1
 
-            if loop_count % 5000 == 0:
+            if loop_count % 10000 == 0:
                 self.log.info("Processed {} reads of {} for {} in {} seconds. Elapsed time: {} seconds."
                               .format(loop_count, len(self.sequence_list), self.index_name, time.time() - split_time,
                                       time.time() - start_time))
@@ -144,12 +144,12 @@ class ScarSearch:
             consensus_seq = seq
 
             # No need to attempt an analysis of bad data.
-            if consensus_seq.count("N") / len(consensus_seq) > float(self.args.N_Limit):
+            if consensus_seq.count("N") / len(consensus_seq) > self.args.N_Limit:
                 self.summary_data[7][0] += 1
                 continue
 
             # No need to analyze sequences that are too short.
-            if len(consensus_seq) <= int(self.args.Minimum_Length):
+            if len(consensus_seq) <= self.args.Minimum_Length:
                 self.summary_data[7][0] += 1
                 continue
 
@@ -162,7 +162,8 @@ class ScarSearch:
             The junction_type_data list contains the repair type category counts.  [0] TMEJ, del_size >= 4 and 
             microhomology_size >= 2; [1] NHEJ, del_size < 4 and ins_size < 5; [2] insertions >= 5 
             [3] Junctions with scars not represented by the other categories; [4] Non-MH Deletions, del_size >= 4 and 
-            microhomology_size < 2 and ins_size < 5
+            microhomology_size < 2 and ins_size < 5: [5] SNV, del_size > 1 and del_size == ins_size and 
+            lft_del <= kmer_size and rt_del <= kmer_size
             '''
             # count reads that pass the read filters
             self.summary_data[1] += 1
@@ -196,7 +197,7 @@ class ScarSearch:
 
         self.log.info("Finished Processing {}".format(self.index_name))
 
-        # Write frequency results file
+        # Write frequency results file and plot results
         self.frequency_output(self.index_name, results_freq_dict, junction_type_data)
 
         # Format and output raw data if user has so chosen.
@@ -268,7 +269,6 @@ class ScarSearch:
         output_dict = {}
         # Total unique scars
         scar_count = 0
-
         # Total of all scars
         total_scars = 0
 
@@ -378,10 +378,11 @@ class ScarSearch:
                     self.homeology_search(consensus, consensus_lft_junction, consensus_rt_junction, target_sequence,
                                           insertion, ref_lft_junction, ref_rt_junction)
 
-            # Scars not part of the previous four
+            # Scars not part of the previous definitions
             else:
                 junction_type_data[3] += key_count
 
+            # These scar types might have microhomeologies
             if scar_type == "Non-MH Deletion" or scar_type == "Insertion":
                 lft_homeology = left_list[0]
                 lft_homeology_pos = left_list[1]
@@ -408,14 +409,14 @@ class ScarSearch:
             frequency_row_list = output_dict[key]
             scar_type = frequency_row_list[2]
             # label_dict[scar_type] += frequency_row_list[1]
-            # Frequency of scar pattern relative to all scars counted
+            # Frequency of scar pattern relative to all scars counted.  Used for plots
             label_dict[scar_type] += frequency_row_list[0] / total_scars
 
             # Plotting all scar patterns is messy.  This provides a cutoff.  Also gives a minimum width to the bar.
-            if frequency_row_list[1] < float(self.args.PatternThreshold):
+            if frequency_row_list[1] < self.args.PatternThreshold:
                 continue
-            elif frequency_row_list[1] < 0.0025:
-                frequency_row_list[1] = 0.0025
+            elif frequency_row_list[1] < 0.003:
+                frequency_row_list[1] = 0.003
 
             y_value = frequency_row_list[1]*0.5
 
@@ -532,9 +533,10 @@ class ScarSearch:
 
         # Now draw a pretty graph of the data if we are not dealing with a negative control.
         scar_fraction = \
-            (self.summary_data[1] - self.summary_data[6][1] - self.summary_data[6][0]) / self.summary_data[1]
+            (junction_type_data[5]+self.summary_data[1]-self.summary_data[6][1]-self.summary_data[6][0]) / \
+            self.summary_data[1]
 
-        if self.summary_data[1] >= self.lower_limit_count and scar_fraction > 0.1:
+        if self.summary_data[1] >= self.lower_limit_count and scar_fraction >= 0.1:
             plot_max = max(marker_list) + max(marker_list) * 0.1
             plot_min = plot_max * -1
             plot_data_dict['Marker'] = [plot_min, plot_max]
@@ -1017,7 +1019,7 @@ class DataProcessing:
             lower_limit = float("NaN")
 
         if math.isnan(lower_limit):
-            lower_limit = float(self.args.PatternThreshold)*0.00001
+            lower_limit = self.args.PatternThreshold*0.00001
         return indexed_read_count, lower_limit
 
     def fastq_compress(self, fastq_file_name_list):
@@ -1027,7 +1029,7 @@ class DataProcessing:
         """
         self.log.info("Spawning {} Jobs to Compress {} Files.".format(self.args.Spawn, len(fastq_file_name_list)))
 
-        p = pathos.multiprocessing.Pool(int(self.args.Spawn))
+        p = pathos.multiprocessing.Pool(self.args.Spawn)
         p.starmap(Tool_Box.compress_files, zip(fastq_file_name_list, itertools.repeat(self.log)))
 
         self.log.info("All Files Compressed")
@@ -1041,7 +1043,7 @@ class DataProcessing:
         indexed_read_count, lower_limit = self.consensus_demultiplex()
 
         self.log.info("Spawning {} Jobs to Process {} Libraries".format(self.args.Spawn, len(self.sequence_dict)))
-        p = pathos.multiprocessing.Pool(int(self.args.Spawn))
+        p = pathos.multiprocessing.Pool(self.args.Spawn)
 
         # My solution for passing key:value pairs to the multiprocessor.  Largest value group goes first.
         data_list = []
@@ -1099,7 +1101,7 @@ class DataProcessing:
             sample_name = sample[1]
             sample_replicate = sample[2]
             try:
-                target_name = sample[4]
+                target_name = sample[6]
             except IndexError:
                 self.log.error("Sample Manifest is missing Target Name column")
                 raise SystemExit(1)
@@ -1210,10 +1212,10 @@ class DataProcessing:
 
         hr_labels = ""
         if self.args.HR_Donor:
-            hr_labels = "\tHR Count\tHR Fraction"
+            hr_labels = "HR Count\tHR Fraction"
 
         sub_header = \
-            "No Junction\tScar Count\tScar Fraction{}\tLeft Deletion Count\tRight Deletion Count\t" \
+            "No Junction\tScar Count\tScar Fraction\tSNV\t{}\tLeft Deletion Count\tRight Deletion Count\t" \
             "Insertion Count\tMicrohomology Count\tNormalized Microhomology".format(hr_labels)
 
         phasing_labels = ""
@@ -1239,9 +1241,9 @@ class DataProcessing:
 
         summary_outstring += \
             "Index Name\tSample Name\tSample Replicate\tTarget\tTotal Found\tFraction Total\tPassing Read Filters\t" \
-            "Fraction Passing Filters\t{}" \
-            "{}\tTMEJ\tNormalized TMEJ\tNHEJ\tNormalized NHEJ\tNon-Microhomology Deletions\tNormalized Non-MH Del\t" \
-            "Insertion >=5 +/- Deletions\tNormalized Insertion >=5+/- Deletions\tOther Scar Type\n"\
+            "Fraction Passing Filters\t{}{}\tTMEJ\tNormalized TMEJ\tNHEJ\tNormalized NHEJ\t" \
+            "Non-Microhomology Deletions\tNormalized Non-MH Del\tInsertion >=5 +/- Deletions\t" \
+            "Normalized Insertion >=5+/- Deletions\tOther Scar Type\n"\
             .format(phasing_labels, sub_header)
 
         '''
@@ -1298,6 +1300,7 @@ class DataProcessing:
             non_microhomology_del = data_list.summary_data[8][4]
             large_ins = data_list.summary_data[8][2]
             other_scar = data_list.summary_data[8][3]
+            snv = data_list.summary_data[8][5]
 
             if cut == 0:
                 microhomology_fraction = 'nan'
@@ -1305,21 +1308,23 @@ class DataProcessing:
                 large_ins_fraction = 'nan'
                 nhej_fraction = 'nan'
                 tmej_fraction = 'nan'
+                snv_fraction = 'nan'
             else:
                 microhomology_fraction = microhomology / cut
                 non_mh_del_fraction = non_microhomology_del / cut
                 large_ins_fraction = large_ins / cut
                 nhej_fraction = nhej / cut
                 tmej_fraction = tmej / cut
+                snv_fraction = snv/cut
 
             summary_outstring += \
                 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}{}\t{}\t{}\t{}{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t" \
-                "{}\t{}\n"\
+                "{}\t{}\t{}\n"\
                 .format(index_name, sample_name, sample_replicate, target, library_read_count, fraction_all_reads,
-                        passing_filters, fraction_passing, phase_data, no_junction, cut, cut_fraction, hr_data,
-                        left_del, right_del, total_ins, microhomology, microhomology_fraction, tmej, tmej_fraction,
-                        nhej, nhej_fraction, non_microhomology_del, non_mh_del_fraction, large_ins, large_ins_fraction,
-                        other_scar)
+                        passing_filters, fraction_passing, phase_data, no_junction, cut, cut_fraction, snv_fraction,
+                        hr_data, left_del, right_del, total_ins, microhomology, microhomology_fraction, tmej,
+                        tmej_fraction, nhej, nhej_fraction, non_microhomology_del, non_mh_del_fraction, large_ins,
+                        large_ins_fraction, other_scar)
         try:
             summary_outstring += "\nUnidentified\t{}\t{}" \
                 .format(self.read_count_dict["unidentified"], self.read_count_dict["unidentified"] / self.read_count)
