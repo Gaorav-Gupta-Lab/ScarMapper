@@ -2,7 +2,7 @@
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599
-@copyright: 2022
+@copyright: 2023
 """
 import collections
 import datetime
@@ -224,8 +224,9 @@ class ScarSearch:
 
         page_header = \
             "# ScarMapper Search v{}\n# Run Start: {}\n# Run End: {}\n# Sample Name: {}\n# Locus Name: {}\n" \
-            "# sgRNA: {}\n{}\n"\
-            .format(self.version, self.run_start, run_stop, sample_name, target_name, sgrna, hr_donor)
+            "# sgRNA: {}\n# Search KMER: {} nucleotides\n{}\n"\
+            .format(self.version, self.run_start, run_stop, sample_name, target_name, sgrna, self.args.Search_KMER,
+                    hr_donor)
 
         return page_header
 
@@ -408,15 +409,15 @@ class ScarSearch:
         for key in natsort.natsorted(output_dict, reverse=True):
             frequency_row_list = output_dict[key]
             scar_type = frequency_row_list[2]
-            # label_dict[scar_type] += frequency_row_list[1]
+
             # Frequency of scar pattern relative to all scars counted.  Used for plots
             label_dict[scar_type] += frequency_row_list[0] / total_scars
 
             # Plotting all scar patterns is messy.  This provides a cutoff.  Also gives a minimum width to the bar.
             if frequency_row_list[1] < self.args.PatternThreshold:
                 continue
-            elif frequency_row_list[1] < 0.003:
-                frequency_row_list[1] = 0.003
+            elif frequency_row_list[1] < 0.0025:
+                frequency_row_list[1] = 0.0025
 
             y_value = frequency_row_list[1]*0.5
 
@@ -536,7 +537,7 @@ class ScarSearch:
             (junction_type_data[5]+self.summary_data[1]-self.summary_data[6][1]-self.summary_data[6][0]) / \
             self.summary_data[1]
 
-        if self.summary_data[1] >= self.lower_limit_count and scar_fraction >= 0.1:
+        if self.summary_data[1] >= self.lower_limit_count and scar_fraction >= 0.08:
             plot_max = max(marker_list) + max(marker_list) * 0.1
             plot_min = plot_max * -1
             plot_data_dict['Marker'] = [plot_min, plot_max]

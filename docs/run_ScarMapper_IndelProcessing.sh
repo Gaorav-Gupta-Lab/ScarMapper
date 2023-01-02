@@ -17,7 +17,7 @@ exit
 --WorkingFolder	/Full/path/to/working folder/ # This is where the output files will be written.
 
 --Verbose	INFO# INFO or DEBUG
---Job_Name	MSK_Test # No spaces or special characters, prepended to output files.
+--Job_Name	 # No spaces or special characters, prepended to output files.
 --Spawn	3 # How many parallel jobs?  Max should be n-1 threads or cpu's.  Minimum is 1.
 --Demultiplex	False # True or False.  Write demultiplexed FASTQ files?
 --DeleteConsensusFASTQ	True
