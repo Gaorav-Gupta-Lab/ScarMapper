@@ -2,7 +2,7 @@
 @author: Dennis A. Simpson
          University of North Carolina at Chapel Hill
          Chapel Hill, NC  27599
-@copyright: 2022
+@copyright: 2023
 """
 import csv
 import datetime
@@ -15,7 +15,6 @@ import argparse
 import sys
 import time
 import pathos
-import pyfaidx
 from natsort import natsort
 from scipy import stats
 from distutils.util import strtobool
@@ -25,8 +24,6 @@ from scarmapper import ScarMapperPlot
 import re
 import pathlib
 import platform
-import pysam
-# import gzip
 
 # This is a seriously ugly hack to check the existence and age of the compiled file.
 folder_content = os.listdir("{0}{1}scarmapper{1}".format(pathlib.Path(__file__).parent.absolute(), os.sep))
@@ -375,7 +372,7 @@ def main(command_line_args=None):
             scar_type = data_list[0][5]
 
             # Plotting all scar patterns is messy.  This provides a cutoff.
-            if freq < 0.00025:
+            if freq < 0.0025:
                 continue
 
             y_value = freq * 0.5
@@ -458,7 +455,7 @@ def error_checking(options_parser):
     options_parser.set_defaults(PatternThreshold=float(args.PatternThreshold))
     options_parser.set_defaults(Minimum_Length=int(args.Minimum_Length))
     if getattr(args, "HR_Donor", False):
-        options_parser.set_defaults(HR_Donor=int(args.HR_Donor))
+        options_parser.set_defaults(HR_Donor=args.HR_Donor).upper()
 
     args = options_parser.parse_args()
 
